@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Django stuff:
+*.log
+*.sqlite3
+db.sqlite3
+
+# Media files
+media/
+
+# Static files
+static/
+
+# IDEs
+.idea/
+.vscode/
+
+# Poetry
+.poetry/
+poetry.lock # Usually committed, but user has it in root, so including for now
+
+# Session summary
+resumen_sesion_2025-11-06.txt
