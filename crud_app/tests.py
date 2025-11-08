@@ -1,7 +1,12 @@
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient # Importamos APIClient
 from rest_framework import status
 from django.urls import reverse
+from django.contrib.auth import get_user_model # Importamos el modelo de usuario
+from django.contrib.auth.models import Group
+from django.utils import timezone
 from .models import Proveedor, Cliente, Producto, Compra, Venta
+
+User = get_user_model() # Obtenemos el modelo de usuario activo
 
 class APITests(APITestCase):
     """
@@ -19,11 +24,24 @@ class APITests(APITestCase):
         Cliente.objects.all().delete()
         Proveedor.objects.all().delete()
 
+        # Crear un usuario de prueba y obtener un token JWT
+        cls.user = User.objects.create_user(username='testuser', password='testpassword')
+        token_url = reverse('token_obtain_pair')
+        
+        # Necesitamos un cliente temporal aquí porque self.client no existe en setUpClass
+        client = APIClient()
+        response = client.post(token_url, {'username': 'testuser', 'password': 'testpassword'}, format='json')
+        cls.access_token = response.data['access']
+        cls.refresh_token = response.data['refresh']
+
     def setUp(self):
         """
         Este método se ejecuta antes de cada prueba.
         Crea un conjunto de datos base para que cada prueba trabaje con ellos.
         """
+        # Establecer las credenciales JWT para todas las peticiones del cliente
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
+
         # Crear Proveedor
         proveedor_url = reverse('proveedor-list')
         proveedor_data = {'nombre': 'Proveedor de Prueba'}
@@ -114,3 +132,362 @@ class APITests(APITestCase):
         self.assertEqual(float(response.data['total_ventas']), 200.00)
         # Total compras: 50 * 9.50 = 475.00
         self.assertEqual(float(response.data['total_compras']), 475.00)
+
+    def test_proveedor_list_unauthenticated_fails(self):
+        """Verifica que el acceso no autenticado a ProveedorViewSet falla."""
+        self.client.credentials() # Limpiar credenciales para esta prueba
+        proveedor_url = reverse('proveedor-list')
+        response = self.client.get(proveedor_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_producto_soft_delete(self):
+        """Verifica que el borrado de un producto es lógico (soft delete)."""
+        producto_url = reverse('producto-detail', args=[self.producto.id])
+        
+        # Borrar el producto
+        response = self.client.delete(producto_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Verificar que el producto no aparece en el manager por defecto
+        self.assertEqual(Producto.objects.count(), 0)
+        
+        # Verificar que el producto todavía existe en la base de datos usando el manager completo
+        self.assertEqual(Producto.all_objects.count(), 1)
+        
+        # Verificar que el campo deleted_at ha sido establecido
+        deleted_product = Producto.all_objects.get(id=self.producto.id)
+        self.assertIsNotNone(deleted_product.deleted_at)
+
+    def test_producto_user_auditing(self):
+        """Verifica que los campos created_by y updated_by se asignan correctamente."""
+        # El producto se crea en setUp, que se ejecuta después de que el usuario se crea en setUpClass
+        # y las credenciales se establecen.
+        self.assertEqual(self.producto.created_by, self.user)
+        
+        # Actualizar el producto
+        producto_url = reverse('producto-detail', args=[self.producto.id])
+        update_data = {'descripcion': 'Nueva descripción de prueba.'}
+        response = self.client.patch(producto_url, update_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Refrescar el objeto desde la base de datos
+        self.producto.refresh_from_db()
+        
+        # Verificar que el campo updated_by ha sido establecido
+        self.assertEqual(self.producto.updated_by, self.user)
+
+    def test_empleado_cannot_see_papelera(self):
+        """Verifica que un usuario normal (no gerente) no puede acceder a la papelera."""
+        papelera_url = reverse('producto-papelera')
+        response = self.client.get(papelera_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_restore_producto(self):
+        """Verifica que un usuario normal (no gerente) no puede restaurar un producto."""
+        # Primero, borramos lógicamente el producto
+        producto_url = reverse('producto-detail', args=[self.producto.id])
+        self.client.delete(producto_url)
+        
+        # Intentamos restaurar
+        restaurar_url = reverse('producto-restaurar', args=[self.producto.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_see_proveedor_papelera(self):
+        """Verifica que un usuario normal (no gerente) no puede acceder a la papelera de proveedores."""
+        papelera_url = reverse('proveedor-papelera')
+        response = self.client.get(papelera_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_restore_proveedor(self):
+        """Verifica que un usuario normal (no gerente) no puede restaurar un proveedor."""
+        # Primero, borramos lógicamente el proveedor
+        proveedor_url = reverse('proveedor-detail', args=[self.proveedor.id])
+        self.client.delete(proveedor_url)
+        
+        # Intentamos restaurar
+        restaurar_url = reverse('proveedor-restaurar', args=[self.proveedor.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_see_cliente_papelera(self):
+        """Verifica que un usuario normal (no gerente) no puede acceder a la papelera de clientes."""
+        papelera_url = reverse('cliente-papelera')
+        response = self.client.get(papelera_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_restore_cliente(self):
+        """Verifica que un usuario normal (no gerente) no puede restaurar un cliente."""
+        # Primero, borramos lógicamente el cliente
+        cliente_url = reverse('cliente-detail', args=[self.cliente.id])
+        self.client.delete(cliente_url)
+        
+        # Intentamos restaurar
+        restaurar_url = reverse('cliente-restaurar', args=[self.cliente.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_see_compra_papelera(self):
+        """Verifica que un usuario normal (no gerente) no puede acceder a la papelera de compras."""
+        papelera_url = reverse('compra-papelera')
+        response = self.client.get(papelera_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_restore_compra(self):
+        """Verifica que un usuario normal (no gerente) no puede restaurar una compra."""
+        # Primero, borramos lógicamente la compra
+        compra_url = reverse('compra-detail', args=[self.compra.id])
+        self.client.delete(compra_url)
+        
+        # Intentamos restaurar
+        restaurar_url = reverse('compra-restaurar', args=[self.compra.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_see_venta_papelera(self):
+        """Verifica que un usuario normal (no gerente) no puede acceder a la papelera de ventas."""
+        papelera_url = reverse('venta-papelera')
+        response = self.client.get(papelera_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_empleado_cannot_restore_venta(self):
+        """Verifica que un usuario normal (no gerente) no puede restaurar una venta."""
+        # Primero, borramos lógicamente la venta
+        venta_url = reverse('venta-detail', args=[self.venta.id])
+        self.client.delete(venta_url)
+        
+        # Intentamos restaurar
+        restaurar_url = reverse('venta-restaurar', args=[self.venta.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+# --- Pruebas para el rol de Gerente ---
+
+class GerenteAPITests(APITestCase):
+    """
+    Pruebas para funcionalidades exclusivas del rol de Gerente.
+    """
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Limpiar la base de datos
+        Venta.objects.all().delete()
+        Compra.objects.all().delete()
+        Producto.objects.all().delete()
+        Cliente.objects.all().delete()
+        Proveedor.objects.all().delete()
+        User.objects.all().delete()
+        Group.objects.all().delete()
+
+        # Crear grupo Gerente
+        cls.gerente_group = Group.objects.create(name='Gerente')
+
+        # Crear usuario gerente
+        cls.gerente_user = User.objects.create_user(username='gerente', password='testpassword')
+        cls.gerente_user.groups.add(cls.gerente_group)
+
+        # Obtener token para el gerente
+        token_url = reverse('token_obtain_pair')
+        client = APIClient()
+        response = client.post(token_url, {'username': 'gerente', 'password': 'testpassword'}, format='json')
+        cls.gerente_access_token = response.data['access']
+
+    def setUp(self):
+        """Configura el cliente con el token del gerente y crea datos base."""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.gerente_access_token)
+        
+        # Crear datos base para las pruebas
+        self.proveedor = Proveedor.objects.create(
+            nombre='Proveedor de Prueba para Gerente',
+            created_by=self.gerente_user
+        )
+        self.cliente = Cliente.objects.create(
+            nombre='Cliente de Prueba para Gerente',
+            created_by=self.gerente_user
+        )
+        self.producto = Producto.objects.create(
+            nombre='Producto para Gerente',
+            proveedor=self.proveedor,
+            stock=50,
+            created_by=self.gerente_user
+        )
+        self.compra = Compra.objects.create(
+            producto=self.producto,
+            proveedor=self.proveedor,
+            cantidad=20,
+            precio_compra_unitario='10.00',
+            created_by=self.gerente_user
+        )
+        self.venta = Venta.objects.create(
+            producto=self.producto,
+            cliente=self.cliente,
+            cantidad=5,
+            precio_venta='25.00',
+            created_by=self.gerente_user
+        )
+
+    def test_gerente_can_see_papelera(self):
+        """Verifica que un gerente puede ver el contenido de la papelera."""
+        # Borrar lógicamente el producto usando la API
+        producto_url = reverse('producto-detail', args=[self.producto.id])
+        self.client.delete(producto_url)
+
+        # Acceder a la papelera
+        papelera_url = reverse('producto-papelera')
+        response = self.client.get(papelera_url, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.producto.id)
+
+    def test_gerente_can_restore_producto(self):
+        """Verifica que un gerente puede restaurar un producto."""
+        # Borrar lógicamente el producto
+        producto_url = reverse('producto-detail', args=[self.producto.id])
+        self.client.delete(producto_url)
+
+        # Verificar que está borrado
+        self.assertEqual(Producto.objects.count(), 0)
+
+        # Restaurar el producto
+        restaurar_url = reverse('producto-restaurar', args=[self.producto.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verificar que el producto ha sido restaurado
+        self.producto.refresh_from_db()
+        self.assertIsNone(self.producto.deleted_at)
+        self.assertEqual(Producto.objects.count(), 1)
+
+    def test_gerente_can_see_proveedor_papelera(self):
+        """Verifica que un gerente puede ver los proveedores en la papelera."""
+        # Borrar lógicamente el proveedor usando la API
+        proveedor_url = reverse('proveedor-detail', args=[self.proveedor.id])
+        self.client.delete(proveedor_url)
+
+        # Acceder a la papelera de proveedores
+        papelera_url = reverse('proveedor-papelera')
+        response = self.client.get(papelera_url, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.proveedor.id)
+
+    def test_gerente_can_restore_proveedor(self):
+        """Verifica que un gerente puede restaurar un proveedor."""
+        # Borrar lógicamente el proveedor
+        proveedor_url = reverse('proveedor-detail', args=[self.proveedor.id])
+        self.client.delete(proveedor_url)
+
+        # Verificar que está borrado
+        self.assertEqual(Proveedor.objects.count(), 0)
+
+        # Restaurar el proveedor
+        restaurar_url = reverse('proveedor-restaurar', args=[self.proveedor.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verificar que el proveedor ha sido restaurado
+        self.proveedor.refresh_from_db()
+        self.assertIsNone(self.proveedor.deleted_at)
+        self.assertEqual(Proveedor.objects.count(), 1)
+
+    def test_gerente_can_see_cliente_papelera(self):
+        """Verifica que un gerente puede ver los clientes en la papelera."""
+        # Borrar lógicamente el cliente usando la API
+        cliente_url = reverse('cliente-detail', args=[self.cliente.id])
+        self.client.delete(cliente_url)
+
+        # Acceder a la papelera de clientes
+        papelera_url = reverse('cliente-papelera')
+        response = self.client.get(papelera_url, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.cliente.id)
+
+    def test_gerente_can_restore_cliente(self):
+        """Verifica que un gerente puede restaurar un cliente."""
+        # Borrar lógicamente el cliente
+        cliente_url = reverse('cliente-detail', args=[self.cliente.id])
+        self.client.delete(cliente_url)
+
+        # Verificar que está borrado
+        self.assertEqual(Cliente.objects.count(), 0)
+
+        # Restaurar el cliente
+        restaurar_url = reverse('cliente-restaurar', args=[self.cliente.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verificar que el cliente ha sido restaurado
+        self.cliente.refresh_from_db()
+        self.assertIsNone(self.cliente.deleted_at)
+        self.assertEqual(Cliente.objects.count(), 1)
+
+    def test_gerente_can_see_compra_papelera(self):
+        """Verifica que un gerente puede ver las compras en la papelera."""
+        # Borrar lógicamente la compra usando la API
+        compra_url = reverse('compra-detail', args=[self.compra.id])
+        self.client.delete(compra_url)
+
+        # Acceder a la papelera de compras
+        papelera_url = reverse('compra-papelera')
+        response = self.client.get(papelera_url, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.compra.id)
+
+    def test_gerente_can_restore_compra(self):
+        """Verifica que un gerente puede restaurar una compra."""
+        # Borrar lógicamente la compra
+        compra_url = reverse('compra-detail', args=[self.compra.id])
+        self.client.delete(compra_url)
+
+        # Verificar que está borrada
+        self.assertEqual(Compra.objects.count(), 0)
+
+        # Restaurar la compra
+        restaurar_url = reverse('compra-restaurar', args=[self.compra.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verificar que la compra ha sido restaurada
+        self.compra.refresh_from_db()
+        self.assertIsNone(self.compra.deleted_at)
+        self.assertEqual(Compra.objects.count(), 1)
+
+    def test_gerente_can_see_venta_papelera(self):
+        """Verifica que un gerente puede ver las ventas en la papelera."""
+        # Borrar lógicamente la venta usando la API
+        venta_url = reverse('venta-detail', args=[self.venta.id])
+        self.client.delete(venta_url)
+
+        # Acceder a la papelera de ventas
+        papelera_url = reverse('venta-papelera')
+        response = self.client.get(papelera_url, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.venta.id)
+
+    def test_gerente_can_restore_venta(self):
+        """Verifica que un gerente puede restaurar una venta."""
+        # Borrar lógicamente la venta
+        venta_url = reverse('venta-detail', args=[self.venta.id])
+        self.client.delete(venta_url)
+
+        # Verificar que está borrada
+        self.assertEqual(Venta.objects.count(), 0)
+
+        # Restaurar la venta
+        restaurar_url = reverse('venta-restaurar', args=[self.venta.id])
+        response = self.client.post(restaurar_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verificar que la venta ha sido restaurada
+        self.venta.refresh_from_db()
+        self.assertIsNone(self.venta.deleted_at)
+        self.assertEqual(Venta.objects.count(), 1)

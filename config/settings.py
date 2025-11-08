@@ -69,6 +69,8 @@ INSTALLED_APPS = [
     # Apps de terceros
     "rest_framework",
     "django_filters",
+    "rest_framework_simplejwt", # Añadido para JWT
+    "simple_history",           # Añadido para el historial de cambios
 
     # Nuestras apps
     "crud_app",
@@ -77,6 +79,21 @@ INSTALLED_APPS = [
 # Configuración de Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication', # Para el admin de Django
+        'rest_framework.authentication.BasicAuthentication',    # Para pruebas o admin
+    ),
+}
+
+# Configuración de djangorestframework-simplejwt
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5), # Token de acceso de corta duración
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Token de refresco de larga duración
+    'ROTATE_REFRESH_TOKENS': False, # No rotar tokens de refresco por ahora
+    'BLACKLIST_USE_DEFAULT_PRESISTENCE': False, # No usar la lista negra por defecto por ahora
 }
 
 
@@ -96,6 +113,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    
+    "simple_history.middleware.HistoryRequestMiddleware", # Añadido para el historial
 
 ]
 
@@ -163,7 +182,7 @@ DATABASES = {
 
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
         "TEST": {
-            "NAME": os.getenv("POSTGRES_DB"), # Usa la misma DB para las pruebas
+            "NAME": os.getenv("POSTGRES_DB") + "_test", # DB separada para pruebas
         },
 
     }
