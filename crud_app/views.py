@@ -5,12 +5,16 @@ from django.db.models import Sum
 from django.db import models # Importamos models para usar models.F
 from django.utils import timezone # Importamos timezone
 from rest_framework.permissions import IsAuthenticated # Importamos IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .permissions import IsGerente # Importamos el permiso personalizado
 from .models import Proveedor, Cliente, Producto, Compra, Venta
 from .serializers import (
     ProveedorSerializer, ClienteSerializer, ProductoSerializer,
     CompraSerializer, VentaSerializer
 )
+from .filters import ProductoBaseFilter, ProductoGerenteFilter
+
 
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
@@ -114,7 +118,21 @@ class ClienteViewSet(viewsets.ModelViewSet):
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
-    permission_classes = [IsAuthenticated] # Protegemos este ViewSet
+    permission_classes = [IsAuthenticated]
+
+    # --- Integración de Filtros ---
+    filter_backends = [DjangoFilterBackend]
+    # No se define 'filterset_class' directamente para poder usar el método de abajo.
+
+    def get_filterset_class(self):
+        """
+        Devuelve la clase de filtro apropiada según el rol del usuario.
+        """
+        # Usamos nuestro permiso personalizado para verificar si el usuario es gerente o superusuario.
+        if IsGerente().has_permission(self.request, self):
+            return ProductoGerenteFilter
+        return ProductoBaseFilter
+    # --- Fin de Integración de Filtros ---
 
     def perform_create(self, serializer):
         """
@@ -138,10 +156,20 @@ class ProductoViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsGerente])
     def papelera(self, request):
         """
-        Endpoint para que los gerentes vean los productos en la papelera (borrado lógico).
+        Endpoint para que los gerentes vean y FILTREN los productos en la papelera.
         """
-        productos_borrados = Producto.all_objects.filter(deleted_at__isnull=False)
-        serializer = self.get_serializer(productos_borrados, many=True)
+        queryset = Producto.all_objects.filter(deleted_at__isnull=False)
+        
+        # Obtenemos la clase de filtro (siempre será la de Gerente aquí) y la aplicamos.
+        # request.GET contiene los parámetros de la URL (ej. ?search=algo)
+        filterset = self.get_filterset_class()(request.GET, queryset=queryset)
+        
+        # Es una buena práctica validar el filtro antes de usarlo.
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Usamos el queryset filtrado (filterset.qs) para la serialización.
+        serializer = self.get_serializer(filterset.qs, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsGerente])
