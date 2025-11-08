@@ -4,14 +4,15 @@ from rest_framework.response import Response
 from django.db.models import Sum
 from django.db import models # Importamos models para usar models.F
 from django.utils import timezone # Importamos timezone
-from rest_framework.permissions import IsAuthenticated # Importamos IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny # Importamos IsAuthenticated y AllowAny
+from rest_framework import generics # Importamos generics
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .permissions import IsGerente # Importamos el permiso personalizado
+from .permissions import IsGerente, IsAprobado # Importamos el permiso personalizado y IsAprobado
 from .models import Proveedor, Cliente, Producto, Compra, Venta
 from .serializers import (
     ProveedorSerializer, ClienteSerializer, ProductoSerializer,
-    CompraSerializer, VentaSerializer
+    CompraSerializer, VentaSerializer, UserRegistrationSerializer # Importamos el nuevo serializador
 )
 from .filters import (
     ProductoBaseFilter, ProductoGerenteFilter,
@@ -25,7 +26,7 @@ from .filters import (
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAprobado] # Añadimos IsAprobado
     filter_backends = [DjangoFilterBackend]
 
     def get_filterset_class(self):
@@ -85,7 +86,7 @@ class ProveedorViewSet(viewsets.ModelViewSet):
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAprobado] # Añadimos IsAprobado
     filter_backends = [DjangoFilterBackend]
 
     def get_filterset_class(self):
@@ -152,7 +153,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAprobado] # Añadimos IsAprobado
     filter_backends = [DjangoFilterBackend]
 
     def get_filterset_class(self):
@@ -212,7 +213,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
 class CompraViewSet(viewsets.ModelViewSet):
     queryset = Compra.objects.all()
     serializer_class = CompraSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAprobado] # Añadimos IsAprobado
     filter_backends = [DjangoFilterBackend]
 
     def get_filterset_class(self):
@@ -272,7 +273,7 @@ class CompraViewSet(viewsets.ModelViewSet):
 class VentaViewSet(viewsets.ModelViewSet):
     queryset = Venta.objects.all()
     serializer_class = VentaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAprobado] # Añadimos IsAprobado
     filter_backends = [DjangoFilterBackend]
 
     def get_filterset_class(self):
@@ -333,7 +334,7 @@ class ReporteSummary(viewsets.ViewSet):
     """
     A ViewSet para proporcionar un resumen de los totales de ventas y compras.
     """
-    permission_classes = [IsAuthenticated] # Protegemos este ViewSet
+    permission_classes = [IsAuthenticated, IsAprobado] # Protegemos este ViewSet y añadimos IsAprobado
     
     def list(self, request):
         total_ventas = Venta.objects.aggregate(total=Sum(models.F('cantidad') * models.F('precio_venta')))['total'] or 0
@@ -344,3 +345,12 @@ class ReporteSummary(viewsets.ViewSet):
             'total_compras': total_compras,
         }
         return Response(data)
+
+# --- Vista para Registro de Usuarios ---
+class UserRegistrationView(generics.CreateAPIView):
+    """
+    Vista para el registro de nuevos usuarios.
+    Permite a cualquier usuario crear una cuenta, que será asignada al grupo 'Pendiente'.
+    """
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [AllowAny]

@@ -619,3 +619,153 @@ class FiltroAPITests(APITestCase):
         # Solo debe encontrar el producto D, que está borrado y cumple el criterio
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['id'], self.producto_D_borrado.id)
+
+# --- NUEVA CLASE DE PRUEBAS PARA REGISTRO DE USUARIOS ---
+
+class UserRegistrationTests(APITestCase):
+    """
+    Pruebas dedicadas a la funcionalidad de registro de usuarios y el permiso IsAprobado.
+    """
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Limpiar la base de datos para un estado consistente
+        Venta.objects.all().delete()
+        Compra.objects.all().delete()
+        Producto.objects.all().delete()
+        Cliente.objects.all().delete()
+        Proveedor.objects.all().delete()
+        User.objects.all().delete()
+        Group.objects.all().delete()
+
+        # Asegurarse de que el grupo 'Pendiente' exista para las pruebas
+        cls.pendiente_group, created = Group.objects.get_or_create(name='Pendiente')
+        cls.gerente_group, created = Group.objects.get_or_create(name='Gerente')
+        cls.empleado_group, created = Group.objects.get_or_create(name='Empleado') # Asegurarse de que Empleado exista
+
+        # Crear un superusuario para probar el bypass de IsAprobado
+        cls.superuser = User.objects.create_superuser(username='admin', password='adminpassword')
+        token_url = reverse('token_obtain_pair')
+        client = APIClient()
+        response = client.post(token_url, {'username': 'admin', 'password': 'adminpassword'}, format='json')
+        cls.superuser_token = response.data['access']
+
+    def test_user_registration_success(self):
+        """
+        Verifica que un nuevo usuario puede registrarse exitosamente
+        y es asignado al grupo 'Pendiente'.
+        """
+        url = reverse('user-register')
+        data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'securepassword123',
+            'password2': 'securepassword123'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('username', response.data)
+        self.assertEqual(response.data['username'], 'newuser')
+
+        # Verificar que el usuario fue creado y asignado al grupo 'Pendiente'
+        user = User.objects.get(username='newuser')
+        self.assertTrue(user.groups.filter(name='Pendiente').exists())
+        self.assertFalse(user.groups.filter(name='Empleado').exists())
+        self.assertFalse(user.groups.filter(name='Gerente').exists())
+
+    def test_user_registration_mismatched_passwords(self):
+        """
+        Verifica que el registro falla si las contraseñas no coinciden.
+        """
+        url = reverse('user-register')
+        data = {
+            'username': 'baduser',
+            'email': 'baduser@example.com',
+            'password': 'password1',
+            'password2': 'password2'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('password', response.data)
+        self.assertEqual(response.data['password'][0], 'Las contraseñas no coinciden.')
+        self.assertEqual(User.objects.filter(username='baduser').count(), 0)
+
+    def test_user_registration_missing_fields(self):
+        """
+        Verifica que el registro falla si faltan campos requeridos.
+        """
+        url = reverse('user-register')
+        data = {
+            'username': 'incomplete',
+            'password': 'password123',
+            'password2': 'password123'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
+        self.assertEqual(User.objects.filter(username='incomplete').count(), 0)
+
+    def test_pending_user_cannot_access_protected_endpoint(self):
+        """
+        Verifica que un usuario recién registrado (Pendiente) no puede acceder
+        a un endpoint protegido por IsAprobado.
+        """
+        # Registrar un nuevo usuario
+        register_url = reverse('user-register')
+        register_data = {
+            'username': 'pendinguser',
+            'email': 'pending@example.com',
+            'password': 'pendingpassword',
+            'password2': 'pendingpassword'
+        }
+        self.client.post(register_url, register_data, format='json')
+
+        # Obtener token para el usuario pendiente
+        token_url = reverse('token_obtain_pair')
+        token_response = self.client.post(token_url, {'username': 'pendinguser', 'password': 'pendingpassword'}, format='json')
+        pending_user_token = token_response.data['access']
+
+        # Intentar acceder a un endpoint protegido (ej. lista de productos)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + pending_user_token)
+        protected_url = reverse('producto-list')
+        response = self.client.get(protected_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_superuser_can_access_protected_endpoint_even_if_pending(self):
+        """
+        Verifica que un superusuario siempre puede acceder a endpoints protegidos,
+        incluso si, hipotéticamente, estuviera en el grupo 'Pendiente'.
+        """
+        # Asegurarse de que el superusuario esté en el grupo 'Pendiente' para esta prueba
+        self.superuser.groups.add(self.pendiente_group)
+        self.superuser.save()
+
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.superuser_token)
+        protected_url = reverse('producto-list')
+        response = self.client.get(protected_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Limpiar el grupo 'Pendiente' del superusuario para no afectar otras pruebas
+        self.superuser.groups.remove(self.pendiente_group)
+        self.superuser.save()
+
+    def test_approved_user_can_access_protected_endpoint(self):
+        """
+        Verifica que un usuario aprobado (no en 'Pendiente') puede acceder
+        a un endpoint protegido por IsAprobado.
+        """
+        # Crear un usuario y asignarlo al grupo 'Empleado' (simulando aprobación)
+        approved_user = User.objects.create_user(username='approveduser', email='approved@example.com', password='approvedpassword')
+        empleado_group, created = Group.objects.get_or_create(name='Empleado')
+        approved_user.groups.add(empleado_group)
+
+        # Obtener token para el usuario aprobado
+        token_url = reverse('token_obtain_pair')
+        token_response = self.client.post(token_url, {'username': 'approveduser', 'password': 'approvedpassword'}, format='json')
+        approved_user_token = token_response.data['access']
+
+        # Intentar acceder a un endpoint protegido (ej. lista de productos)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + approved_user_token)
+        protected_url = reverse('producto-list')
+        response = self.client.get(protected_url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
