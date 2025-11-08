@@ -491,3 +491,131 @@ class GerenteAPITests(APITestCase):
         self.venta.refresh_from_db()
         self.assertIsNone(self.venta.deleted_at)
         self.assertEqual(Venta.objects.count(), 1)
+
+# --- NUEVA CLASE DE PRUEBAS PARA FILTROS ---
+
+class FiltroAPITests(APITestCase):
+    """
+    Pruebas dedicadas a la funcionalidad de filtrado en los ViewSets.
+    """
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Limpiar la base de datos para un estado consistente
+        Venta.objects.all().delete()
+        Compra.objects.all().delete()
+        Producto.objects.all().delete()
+        Cliente.objects.all().delete()
+        Proveedor.objects.all().delete()
+        User.objects.all().delete()
+        Group.objects.all().delete()
+
+        # Crear grupos
+        cls.gerente_group = Group.objects.create(name='Gerente')
+        cls.empleado_group = Group.objects.create(name='Empleado')
+
+        # Crear usuarios
+        cls.gerente_user = User.objects.create_user(username='gerente_filtros', password='testpassword')
+        cls.empleado_user = User.objects.create_user(username='empleado_filtros', password='testpassword')
+        cls.gerente_user.groups.add(cls.gerente_group)
+        cls.empleado_user.groups.add(cls.empleado_group)
+
+        # Obtener tokens JWT para ambos usuarios
+        token_url = reverse('token_obtain_pair')
+        client = APIClient()
+        
+        gerente_response = client.post(token_url, {'username': 'gerente_filtros', 'password': 'testpassword'}, format='json')
+        cls.gerente_token = gerente_response.data['access']
+        
+        empleado_response = client.post(token_url, {'username': 'empleado_filtros', 'password': 'testpassword'}, format='json')
+        cls.empleado_token = empleado_response.data['access']
+
+    def setUp(self):
+        """Crea un conjunto de datos rico para probar los filtros."""
+        # Crear proveedores
+        self.proveedor_1 = Proveedor.objects.create(nombre='Proveedor A', created_by=self.empleado_user)
+        self.proveedor_2 = Proveedor.objects.create(nombre='Proveedor B', created_by=self.gerente_user)
+
+        # Crear productos
+        self.producto_A = Producto.objects.create(
+            nombre='Laptop', stock=20, proveedor=self.proveedor_1, created_by=self.empleado_user
+        )
+        self.producto_B = Producto.objects.create(
+            nombre='Monitor', stock=5, proveedor=self.proveedor_1, created_by=self.gerente_user
+        )
+        self.producto_C = Producto.objects.create(
+            nombre='Teclado Gamer', stock=50, proveedor=self.proveedor_2, created_by=self.gerente_user
+        )
+        # Producto para probar la papelera
+        self.producto_D_borrado = Producto.objects.create(
+            nombre='Mouse', stock=100, proveedor=self.proveedor_2, created_by=self.gerente_user
+        )
+        self.producto_D_borrado.deleted_at = timezone.now()
+        self.producto_D_borrado.save()
+
+    def test_filtro_base_como_empleado(self):
+        """Verifica que un empleado puede usar filtros base en productos."""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.empleado_token)
+        url = reverse('producto-list') + f'?proveedor={self.proveedor_1.id}'
+        
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Deben aparecer 2 productos del proveedor 1
+        self.assertEqual(len(response.data), 2)
+        
+        # Extraer los IDs de la respuesta para una verificación más robusta
+        response_ids = {item['id'] for item in response.data}
+        self.assertIn(self.producto_A.id, response_ids)
+        self.assertIn(self.producto_B.id, response_ids)
+
+    def test_filtro_search_como_empleado(self):
+        """Verifica que un empleado puede usar el filtro de búsqueda."""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.empleado_token)
+        url = reverse('producto-list') + '?search=Gamer'
+        
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.producto_C.id)
+
+    def test_filtro_gerente_ignorado_para_empleado(self):
+        """Verifica que los filtros de gerente son ignorados para un empleado."""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.empleado_token)
+        # El empleado intenta filtrar por productos creados por el gerente
+        url = reverse('producto-list') + f'?creado_por={self.gerente_user.id}'
+        
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # El filtro debe ser ignorado, devolviendo todos los productos no borrados (3)
+        self.assertEqual(len(response.data), 3)
+
+    def test_filtro_auditoria_como_gerente(self):
+        """Verifica que un gerente puede usar filtros de auditoría."""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.gerente_token)
+        # El gerente filtra por productos creados por él mismo
+        url = reverse('producto-list') + f'?creado_por={self.gerente_user.id}'
+        
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Deben aparecer 2 productos creados por el gerente
+        self.assertEqual(len(response.data), 2)
+        response_ids = {item['id'] for item in response.data}
+        self.assertIn(self.producto_B.id, response_ids)
+        self.assertIn(self.producto_C.id, response_ids)
+
+    def test_filtro_en_papelera_como_gerente(self):
+        """Verifica que un gerente puede usar filtros en la papelera."""
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.gerente_token)
+        # El gerente busca en la papelera productos con stock >= 100
+        url = reverse('producto-papelera') + '?stock_min=100'
+        
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Solo debe encontrar el producto D, que está borrado y cumple el criterio
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.producto_D_borrado.id)
