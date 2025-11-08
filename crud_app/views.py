@@ -17,7 +17,8 @@ from .filters import (
     ProductoBaseFilter, ProductoGerenteFilter,
     ProveedorBaseFilter, ProveedorGerenteFilter,
     ClienteBaseFilter, ClienteGerenteFilter,
-    CompraBaseFilter, CompraGerenteFilter
+    CompraBaseFilter, CompraGerenteFilter,
+    VentaBaseFilter, VentaGerenteFilter
 )
 
 
@@ -294,7 +295,19 @@ class CompraViewSet(viewsets.ModelViewSet):
 class VentaViewSet(viewsets.ModelViewSet):
     queryset = Venta.objects.all()
     serializer_class = VentaSerializer
-    permission_classes = [IsAuthenticated] # Protegemos este ViewSet
+    permission_classes = [IsAuthenticated]
+
+    # --- Integración de Filtros (Venta) ---
+    filter_backends = [DjangoFilterBackend]
+
+    def get_filterset_class(self):
+        """
+        Devuelve la clase de filtro apropiada para Venta según el rol del usuario.
+        """
+        if IsGerente().has_permission(self.request, self):
+            return VentaGerenteFilter
+        return VentaBaseFilter
+    # --- Fin de Integración de Filtros ---
 
     def perform_create(self, serializer):
         """
@@ -318,10 +331,16 @@ class VentaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsGerente])
     def papelera(self, request):
         """
-        Endpoint para que los gerentes vean las ventas en la papelera (borrado lógico).
+        Endpoint para que los gerentes vean y FILTREN las ventas en la papelera (borrado lógico).
         """
-        ventas_borradas = Venta.all_objects.filter(deleted_at__isnull=False)
-        serializer = self.get_serializer(ventas_borradas, many=True)
+        queryset = Venta.all_objects.filter(deleted_at__isnull=False)
+        
+        filterset = self.get_filterset_class()(request.GET, queryset=queryset)
+        
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(filterset.qs, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsGerente])

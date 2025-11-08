@@ -2,7 +2,7 @@
 import django_filters
 from django.db.models import Q
 from django.contrib.auth import get_user_model
-from .models import Producto, Proveedor, Cliente, Compra # <--- Compra añadido aquí
+from .models import Producto, Proveedor, Cliente, Compra, Venta # <--- Venta añadido aquí
 
 User = get_user_model()
 
@@ -145,7 +145,7 @@ class ClienteGerenteFilter(ClienteBaseFilter):
     class Meta(ClienteBaseFilter.Meta):
         pass
 
-# --- NUEVAS CLASES PARA COMPRA ---
+# --- CLASES PARA COMPRA ---
 
 class CompraBaseFilter(django_filters.FilterSet):
     """
@@ -200,4 +200,64 @@ class CompraGerenteFilter(CompraBaseFilter):
     fecha_modificacion_hasta = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte', label="Modificado hasta (YYYY-MM-DD)")
 
     class Meta(CompraBaseFilter.Meta):
+        pass
+
+# --- NUEVAS CLASES PARA VENTA ---
+
+class VentaBaseFilter(django_filters.FilterSet):
+    """
+    Filtros base para el modelo Venta, disponibles para todos los roles.
+    """
+    # Filtro por producto
+    producto = django_filters.ModelChoiceFilter(
+        queryset=Producto.objects.all(),
+        field_name='producto',
+        label="Producto"
+    )
+    # Filtro por cliente
+    cliente = django_filters.ModelChoiceFilter(
+        queryset=Cliente.objects.all(),
+        field_name='cliente',
+        label="Cliente"
+    )
+    # Filtro por rango de cantidad
+    cantidad_min = django_filters.NumberFilter(field_name='cantidad', lookup_expr='gte', label="Cantidad Mínima")
+    cantidad_max = django_filters.NumberFilter(field_name='cantidad', lookup_expr='lte', label="Cantidad Máxima")
+    # Filtro por rango de precio de venta
+    precio_min = django_filters.NumberFilter(field_name='precio_venta', lookup_expr='gte', label="Precio de Venta Mínimo")
+    precio_max = django_filters.NumberFilter(field_name='precio_venta', lookup_expr='lte', label="Precio de Venta Máximo")
+    # Filtro por rango de total de venta
+    total_min = django_filters.NumberFilter(field_name='total_venta', lookup_expr='gte', label="Total de Venta Mínimo")
+    total_max = django_filters.NumberFilter(field_name='total_venta', lookup_expr='lte', label="Total de Venta Máximo")
+    # Filtro por rango de fecha de venta
+    fecha_venta_desde = django_filters.DateFilter(field_name='fecha_venta', lookup_expr='date__gte', label="Fecha de Venta desde (YYYY-MM-DD)")
+    fecha_venta_hasta = django_filters.DateFilter(field_name='fecha_venta', lookup_expr='date__lte', label="Fecha de Venta hasta (YYYY-MM-DD)")
+
+
+    class Meta:
+        model = Venta
+        fields = [] # Los campos se definen explícitamente arriba
+
+class VentaGerenteFilter(VentaBaseFilter):
+    """
+    Filtros avanzados para Gerentes de Venta, que heredan de los filtros base
+    y añaden filtros de auditoría.
+    """
+    creado_por = django_filters.ModelChoiceFilter(
+        queryset=User.objects.all(),
+        field_name='created_by',
+        label="Creado por"
+    )
+    fecha_creacion_desde = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte', label="Creado desde (YYYY-MM-DD)")
+    fecha_creacion_hasta = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte', label="Creado hasta (YYYY-MM-DD)")
+    
+    modificado_por = django_filters.ModelChoiceFilter(
+        queryset=User.objects.all(),
+        field_name='updated_by',
+        label="Modificado por"
+    )
+    fecha_modificacion_desde = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte', label="Modificado desde (YYYY-MM-DD)")
+    fecha_modificacion_hasta = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte', label="Modificado hasta (YYYY-MM-DD)")
+
+    class Meta(VentaBaseFilter.Meta):
         pass
