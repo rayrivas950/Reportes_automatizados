@@ -50,8 +50,10 @@ DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
 
-
-
+# Email configuration for development
+# In development, emails will be printed to the console.
+# For production, this should be changed to a real email backend (e.g., SMTP).
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 
 # Application definition

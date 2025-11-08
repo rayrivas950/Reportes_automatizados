@@ -4,6 +4,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model # Importamos el modelo de usuario
 from django.contrib.auth.models import Group
 from django.utils import timezone
+from django.core import mail
+import re
 from .models import Proveedor, Cliente, Producto, Compra, Venta
 
 User = get_user_model() # Obtenemos el modelo de usuario activo
