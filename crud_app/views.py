@@ -9,17 +9,32 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .permissions import IsGerente # Importamos el permiso personalizado
 from .models import Proveedor, Cliente, Producto, Compra, Venta
-from .serializers import (
+from .serializers (
     ProveedorSerializer, ClienteSerializer, ProductoSerializer,
     CompraSerializer, VentaSerializer
 )
-from .filters import ProductoBaseFilter, ProductoGerenteFilter
+from .filters import (
+    ProductoBaseFilter, ProductoGerenteFilter, # Existente
+    ProveedorBaseFilter, ProveedorGerenteFilter # Nuevo
+)
 
 
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
-    permission_classes = [IsAuthenticated] # Protegemos este ViewSet
+    permission_classes = [IsAuthenticated]
+
+    # --- Integración de Filtros (Proveedor) ---
+    filter_backends = [DjangoFilterBackend]
+
+    def get_filterset_class(self):
+        """
+        Devuelve la clase de filtro apropiada para Proveedor según el rol del usuario.
+        """
+        if IsGerente().has_permission(self.request, self):
+            return ProveedorGerenteFilter
+        return ProveedorBaseFilter
+    # --- Fin de Integración de Filtros ---
 
     def perform_create(self, serializer):
         """
@@ -43,10 +58,16 @@ class ProveedorViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsGerente])
     def papelera(self, request):
         """
-        Endpoint para que los gerentes vean los proveedores en la papelera (borrado lógico).
+        Endpoint para que los gerentes vean y FILTREN los proveedores en la papelera (borrado lógico).
         """
-        proveedores_borrados = Proveedor.all_objects.filter(deleted_at__isnull=False)
-        serializer = self.get_serializer(proveedores_borrados, many=True)
+        queryset = Proveedor.all_objects.filter(deleted_at__isnull=False)
+        
+        filterset = self.get_filterset_class()(request.GET, queryset=queryset)
+        
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(filterset.qs, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsGerente])
