@@ -9,14 +9,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .permissions import IsGerente # Importamos el permiso personalizado
 from .models import Proveedor, Cliente, Producto, Compra, Venta
-from .serializers (
+from .serializers import (
     ProveedorSerializer, ClienteSerializer, ProductoSerializer,
     CompraSerializer, VentaSerializer
 )
 from .filters import (
-    ProductoBaseFilter, ProductoGerenteFilter, # Existente
-    ProveedorBaseFilter, ProveedorGerenteFilter, # Existente
-    ClienteBaseFilter, ClienteGerenteFilter # Nuevo
+    ProductoBaseFilter, ProductoGerenteFilter,
+    ProveedorBaseFilter, ProveedorGerenteFilter,
+    ClienteBaseFilter, ClienteGerenteFilter,
+    CompraBaseFilter, CompraGerenteFilter
 )
 
 
@@ -229,7 +230,19 @@ class ProductoViewSet(viewsets.ModelViewSet):
 class CompraViewSet(viewsets.ModelViewSet):
     queryset = Compra.objects.all()
     serializer_class = CompraSerializer
-    permission_classes = [IsAuthenticated] # Protegemos este ViewSet
+    permission_classes = [IsAuthenticated]
+
+    # --- Integración de Filtros (Compra) ---
+    filter_backends = [DjangoFilterBackend]
+
+    def get_filterset_class(self):
+        """
+        Devuelve la clase de filtro apropiada para Compra según el rol del usuario.
+        """
+        if IsGerente().has_permission(self.request, self):
+            return CompraGerenteFilter
+        return CompraBaseFilter
+    # --- Fin de Integración de Filtros ---
 
     def perform_create(self, serializer):
         """
@@ -253,10 +266,16 @@ class CompraViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsGerente])
     def papelera(self, request):
         """
-        Endpoint para que los gerentes vean las compras en la papelera (borrado lógico).
+        Endpoint para que los gerentes vean y FILTREN las compras en la papelera (borrado lógico).
         """
-        compras_borradas = Compra.all_objects.filter(deleted_at__isnull=False)
-        serializer = self.get_serializer(compras_borradas, many=True)
+        queryset = Compra.all_objects.filter(deleted_at__isnull=False)
+        
+        filterset = self.get_filterset_class()(request.GET, queryset=queryset)
+        
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(filterset.qs, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsGerente])
