@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core import mail
 import re
 from .models import Proveedor, Cliente, Producto, Compra, Venta
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 User = get_user_model() # Obtenemos el modelo de usuario activo
 
@@ -771,3 +772,88 @@ class UserRegistrationTests(APITestCase):
         protected_url = reverse('producto-list')
         response = self.client.get(protected_url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+# --- NUEVA CLASE DE PRUEBAS PARA JWT ---
+
+class JWTTests(APITestCase):
+    """
+    Pruebas dedicadas a la funcionalidad de JWT, incluyendo rotación de refresh tokens y blacklist.
+    """
+    def setUp(self):
+        super().setUp()
+        # Arrange: Limpiar la base de datos de tokens para un estado consistente en cada test
+        OutstandingToken.objects.all().delete()
+        BlacklistedToken.objects.all().delete()
+        User.objects.all().delete()
+        Group.objects.get_or_create(name='Empleado')
+
+        # Arrange: Crear un usuario de prueba
+        self.user = User.objects.create_user(username='jwtuser', password='jwtpassword')
+        self.user.groups.add(Group.objects.get(name='Empleado'))
+
+        # Arrange: Obtener tokens iniciales
+        token_url = reverse('token_obtain_pair')
+        response = self.client.post(token_url, {'username': 'jwtuser', 'password': 'jwtpassword'}, format='json')
+        self.initial_access_token = response.data['access']
+        self.initial_refresh_token = response.data['refresh']
+
+    def test_refresh_token_rotation(self):
+        """
+        Verifica que al usar un refresh token, se obtiene un nuevo par de tokens
+        y el refresh token anterior es invalidado.
+        """
+        # Arrange: (Ya hecho en setUp)
+        
+        # Act: Usar el refresh token inicial para obtener nuevos tokens
+        refresh_url = reverse('token_refresh')
+        response = self.client.post(refresh_url, {'refresh': self.initial_refresh_token}, format='json')
+        
+        # Assert: Verificar que la solicitud fue exitosa y se obtuvieron nuevos tokens
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        new_access_token = response.data['access']
+        new_refresh_token = response.data['refresh']
+
+        self.assertIsNotNone(new_access_token)
+        self.assertIsNotNone(new_refresh_token)
+        self.assertNotEqual(new_access_token, self.initial_access_token)
+        self.assertNotEqual(new_refresh_token, self.initial_refresh_token)
+
+        # Assert: Verificar que el refresh token antiguo ha sido blacklisteado
+        old_token_obj = OutstandingToken.objects.get(token=self.initial_refresh_token)
+        self.assertTrue(BlacklistedToken.objects.filter(token=old_token_obj).exists())
+
+        # Act: Intentar usar el refresh token antiguo (debería fallar)
+        response_old_refresh = self.client.post(refresh_url, {'refresh': self.initial_refresh_token}, format='json')
+        
+        # Assert: Verificar que el refresh token antiguo ya no es válido
+        self.assertEqual(response_old_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('code', response_old_refresh.data)
+        self.assertEqual(response_old_refresh.data['code'], 'token_not_valid')
+
+    def test_logout_blacklists_refresh_token(self):
+        """
+        Verifica que al hacer logout, el refresh token es añadido a la blacklist
+        y no puede ser usado nuevamente.
+        """
+        # Arrange: (Ya hecho en setUp)
+        
+        # Act: Realizar la acción de logout (blacklisting)
+        logout_url = reverse('token_blacklist')
+        response_logout = self.client.post(logout_url, {'refresh': self.initial_refresh_token}, format='json')
+        
+        # Assert: Verificar que la solicitud de logout fue exitosa
+        self.assertEqual(response_logout.status_code, status.HTTP_200_OK)
+
+        # Assert: Verificar que el refresh token ha sido blacklisteado en la base de datos
+        logout_token_obj = OutstandingToken.objects.get(token=self.initial_refresh_token)
+        self.assertTrue(BlacklistedToken.objects.filter(token=logout_token_obj).exists())
+
+        # Act: Intentar usar el refresh token blacklisteado (debería fallar)
+        refresh_url = reverse('token_refresh')
+        response_blacklisted_refresh = self.client.post(refresh_url, {'refresh': self.initial_refresh_token}, format='json')
+        
+        # Assert: Verificar que el refresh token blacklisteado ya no es válido
+        self.assertEqual(response_blacklisted_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('code', response_blacklisted_refresh.data)
+        self.assertEqual(response_blacklisted_refresh.data['code'], 'token_not_valid')

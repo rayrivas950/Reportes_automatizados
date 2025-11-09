@@ -20,6 +20,7 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
+    TokenBlacklistView, # Add this line
 )
 
 urlpatterns = [
@@ -27,6 +28,7 @@ urlpatterns = [
     path("api/", include("crud_app.urls")),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'), # Add this line
     # Añadimos las URLs de autenticación de Django (incluye reseteo de contraseña)
     path('api/auth/', include('django.contrib.auth.urls')),
 ]

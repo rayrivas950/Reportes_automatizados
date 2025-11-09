@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_filters",
     "rest_framework_simplejwt", # Añadido para JWT
+    "rest_framework_simplejwt.token_blacklist", # Requerido para la blacklist de tokens
     "simple_history",           # Añadido para el historial de cambios
 
     # Nuestras apps
@@ -94,8 +95,8 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5), # Token de acceso de corta duración
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Token de refresco de larga duración
-    'ROTATE_REFRESH_TOKENS': False, # No rotar tokens de refresco por ahora
-    'BLACKLIST_USE_DEFAULT_PRESISTENCE': False, # No usar la lista negra por defecto por ahora
+    'ROTATE_REFRESH_TOKENS': True, # Rotar tokens de refresco para mejorar la seguridad
+    'BLACKLIST_AFTER_ROTATION': True, # Usar la lista negra para invalidar tokens en logout
 }
 
 
