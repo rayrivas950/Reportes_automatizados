@@ -87,6 +87,24 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication', # Para el admin de Django
         'rest_framework.authentication.BasicAuthentication',    # Para pruebas o admin
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '50/min',
+        'user': '100/min',
+        'login': '5/min', # Límite específico para intentos de login
+    }
+}
+
+# Configuración de CACHES para throttling de DRF
+# Usamos una caché en memoria local, adecuada para desarrollo y pruebas.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake', # Un nombre único para la caché
+    }
 }
 
 # Configuración de djangorestframework-simplejwt

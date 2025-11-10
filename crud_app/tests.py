@@ -5,9 +5,11 @@ from django.contrib.auth import get_user_model # Importamos el modelo de usuario
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.core import mail
+from django.test import override_settings # Importamos override_settings
 import re
 from .models import Proveedor, Cliente, Producto, Compra, Venta
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from crud_app.views_auth import TokenObtainPairViewWithThrottle # Importamos la vista personalizada
 
 User = get_user_model() # Obtenemos el modelo de usuario activo
 
@@ -27,15 +29,23 @@ class APITests(APITestCase):
         Cliente.objects.all().delete()
         Proveedor.objects.all().delete()
 
-        # Crear un usuario de prueba y obtener un token JWT
+        # Crear un usuario de prueba
         cls.user = User.objects.create_user(username='testuser', password='testpassword')
         token_url = reverse('token_obtain_pair')
         
         # Necesitamos un cliente temporal aquí porque self.client no existe en setUpClass
         client = APIClient()
-        response = client.post(token_url, {'username': 'testuser', 'password': 'testpassword'}, format='json')
-        cls.access_token = response.data['access']
-        cls.refresh_token = response.data['refresh']
+
+        # Desactivar throttling temporalmente para obtener el token en setUpClass
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        TokenObtainPairViewWithThrottle.throttle_classes = []
+        try:
+            response = client.post(token_url, {'username': 'testuser', 'password': 'testpassword'}, format='json')
+            cls.access_token = response.data['access']
+            cls.refresh_token = response.data['refresh']
+        finally:
+            # Restaurar las clases de throttling originales
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
 
     def setUp(self):
         """
@@ -293,8 +303,16 @@ class GerenteAPITests(APITestCase):
         # Obtener token para el gerente
         token_url = reverse('token_obtain_pair')
         client = APIClient()
-        response = client.post(token_url, {'username': 'gerente', 'password': 'testpassword'}, format='json')
-        cls.gerente_access_token = response.data['access']
+
+        # Desactivar throttling temporalmente para obtener el token en setUpClass
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        TokenObtainPairViewWithThrottle.throttle_classes = []
+        try:
+            response = client.post(token_url, {'username': 'gerente', 'password': 'testpassword'}, format='json')
+            cls.gerente_access_token = response.data['access']
+        finally:
+            # Restaurar las clases de throttling originales
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
 
     def setUp(self):
         """Configura el cliente con el token del gerente y crea datos base."""
@@ -526,12 +544,19 @@ class FiltroAPITests(APITestCase):
         # Obtener tokens JWT para ambos usuarios
         token_url = reverse('token_obtain_pair')
         client = APIClient()
-        
-        gerente_response = client.post(token_url, {'username': 'gerente_filtros', 'password': 'testpassword'}, format='json')
-        cls.gerente_token = gerente_response.data['access']
-        
-        empleado_response = client.post(token_url, {'username': 'empleado_filtros', 'password': 'testpassword'}, format='json')
-        cls.empleado_token = empleado_response.data['access']
+
+        # Desactivar throttling temporalmente para obtener el token en setUpClass
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        TokenObtainPairViewWithThrottle.throttle_classes = []
+        try:
+            gerente_response = client.post(token_url, {'username': 'gerente_filtros', 'password': 'testpassword'}, format='json')
+            cls.gerente_token = gerente_response.data['access']
+            
+            empleado_response = client.post(token_url, {'username': 'empleado_filtros', 'password': 'testpassword'}, format='json')
+            cls.empleado_token = empleado_response.data['access']
+        finally:
+            # Restaurar las clases de throttling originales
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
 
     def setUp(self):
         """Crea un conjunto de datos rico para probar los filtros."""
@@ -650,8 +675,16 @@ class UserRegistrationTests(APITestCase):
         cls.superuser = User.objects.create_superuser(username='admin', password='adminpassword')
         token_url = reverse('token_obtain_pair')
         client = APIClient()
-        response = client.post(token_url, {'username': 'admin', 'password': 'adminpassword'}, format='json')
-        cls.superuser_token = response.data['access']
+
+        # Desactivar throttling temporalmente para obtener el token en setUpClass
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        TokenObtainPairViewWithThrottle.throttle_classes = []
+        try:
+            response = client.post(token_url, {'username': 'admin', 'password': 'adminpassword'}, format='json')
+            cls.superuser_token = response.data['access']
+        finally:
+            # Restaurar las clases de throttling originales
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
 
     def test_user_registration_success(self):
         """
@@ -725,8 +758,14 @@ class UserRegistrationTests(APITestCase):
 
         # Obtener token para el usuario pendiente
         token_url = reverse('token_obtain_pair')
-        token_response = self.client.post(token_url, {'username': 'pendinguser', 'password': 'pendingpassword'}, format='json')
-        pending_user_token = token_response.data['access']
+        client = APIClient() # Usar un nuevo cliente para evitar credenciales persistentes
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        TokenObtainPairViewWithThrottle.throttle_classes = []
+        try:
+            token_response = client.post(token_url, {'username': 'pendinguser', 'password': 'pendingpassword'}, format='json')
+            pending_user_token = token_response.data['access']
+        finally:
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
 
         # Intentar acceder a un endpoint protegido (ej. lista de productos)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + pending_user_token)
@@ -764,8 +803,14 @@ class UserRegistrationTests(APITestCase):
 
         # Obtener token para el usuario aprobado
         token_url = reverse('token_obtain_pair')
-        token_response = self.client.post(token_url, {'username': 'approveduser', 'password': 'approvedpassword'}, format='json')
-        approved_user_token = token_response.data['access']
+        client = APIClient() # Usar un nuevo cliente para evitar credenciales persistentes
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        TokenObtainPairViewWithThrottle.throttle_classes = []
+        try:
+            token_response = client.post(token_url, {'username': 'approveduser', 'password': 'approvedpassword'}, format='json')
+            approved_user_token = token_response.data['access']
+        finally:
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
 
         # Intentar acceder a un endpoint protegido (ej. lista de productos)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + approved_user_token)
@@ -857,3 +902,62 @@ class JWTTests(APITestCase):
         self.assertEqual(response_blacklisted_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertIn('code', response_blacklisted_refresh.data)
         self.assertEqual(response_blacklisted_refresh.data['code'], 'token_not_valid')
+
+
+# --- NUEVA CLASE DE PRUEBAS PARA RATE LIMITING ---
+
+from rest_framework.throttling import ScopedRateThrottle # Importar ScopedRateThrottle para la prueba específica
+
+class RateLimitingTests(APITestCase):
+    """
+    Pruebas dedicadas a la funcionalidad de rate limiting (throttling).
+    """
+    @override_settings(REST_FRAMEWORK={
+        'DEFAULT_THROTTLE_CLASSES': [
+            'rest_framework.throttling.ScopedRateThrottle',
+        ],
+        'DEFAULT_THROTTLE_RATES': {
+            'anon': '100/min',
+            'user': '100/min',
+            'login': '3/min', # Revertir a 3/min
+        }
+    })
+    def test_login_rate_limiting_is_enforced(self):
+        """
+        Verifica que el endpoint de login bloquea las peticiones después de
+        superar el límite establecido (3 peticiones por minuto).
+        """
+        # Arrange: Definir la URL y los datos para un intento de login fallido
+        url = reverse('token_obtain_pair')
+        data = {
+            'username': 'nonexistentuser',
+            'password': 'wrongpassword'
+        }
+
+        # Guardar las clases de throttling originales de la vista
+        original_throttle_classes = TokenObtainPairViewWithThrottle.throttle_classes
+        # Establecer ScopedRateThrottle para la vista durante la prueba
+        TokenObtainPairViewWithThrottle.throttle_classes = [ScopedRateThrottle]
+
+        try:
+            # Act & Assert: Realizar 3 intentos fallidos. Deben devolver 401.
+            for i in range(3):
+                response = self.client.post(url, data, format='json')
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_401_UNAUTHORIZED,
+                    f"La petición {i+1} debería haber fallado con 401, pero devolvió {response.status_code}"
+                )
+
+            # Act & Assert: El cuarto intento debe ser bloqueado con 429.
+            response = self.client.post(url, data, format='json')
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "La cuarta petición debería haber sido bloqueada con 429."
+            )
+            self.assertIn('detail', response.data)
+            self.assertIn('throttled', response.data['detail'].lower())
+        finally:
+            # Restaurar las clases de throttling originales de la vista
+            TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
