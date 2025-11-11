@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt", # Añadido para JWT
     "rest_framework_simplejwt.token_blacklist", # Requerido para la blacklist de tokens
     "simple_history",           # Añadido para el historial de cambios
+    "drf_spectacular",          # Añadido para la documentación OpenAPI/Swagger
 
     # Nuestras apps
     "crud_app",
@@ -81,6 +82,7 @@ INSTALLED_APPS = [
 
 # Configuración de Django REST Framework
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -117,6 +119,16 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True, # Usar la lista negra para invalidar tokens en logout
 }
 
+# # Configuración de drf-spectacular para la documentación OpenAPI/Swagger
+# SPECTACULAR_SETTINGS = {
+#     'TITLE': 'Reportes Automatizados API',
+#     'DESCRIPTION': 'API para la gestión de CRUD y automatización de reportes en Excel.',
+#     'VERSION': '1.0.0',
+#     'SERVE_INCLUDE_SCHEMA': False,
+#     # Opciones de UI
+#     'SWAGGER_UI_DIST': 'CDN',
+#     'REDOC_UI_DIST': 'CDN',
+# }
 
 
 MIDDLEWARE = [
