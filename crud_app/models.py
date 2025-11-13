@@ -220,3 +220,86 @@ class Venta(models.Model):
         from decimal import Decimal
         self.total_venta = self.cantidad * Decimal(self.precio_venta)
         super().save(*args, **kwargs)
+
+
+# --- Modelos para Staging de Importaciones ---
+
+class TransaccionImportadaBase(models.Model):
+    """
+    Un modelo base abstracto para manejar transacciones importadas desde archivos,
+    antes de que se conviertan en registros de Venta o Compra definitivos.
+    """
+    class Estados(models.TextChoices):
+        PENDIENTE = 'PENDIENTE', 'Pendiente de Revisión'
+        CONFLICTO = 'CONFLICTO', 'Conflicto Detectado'
+        PROCESADO = 'PROCESADO', 'Procesado y Confirmado'
+        IGNORADO = 'IGNORADO', 'Ignorado Manualmente'
+
+    estado = models.CharField(
+        max_length=10,
+        choices=Estados.choices,
+        default=Estados.PENDIENTE,
+        verbose_name="Estado de la Importación"
+    )
+    datos_fila_original = models.JSONField(
+        verbose_name="Datos Originales de la Fila del Excel"
+    )
+    detalles_conflicto = models.JSONField(
+        null=True, 
+        blank=True, 
+        verbose_name="Detalles del Conflicto Detectado"
+    )
+    
+    # Campos de auditoría para la importación
+    importado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='+', # El '+' evita crear una relación inversa innecesaria
+        verbose_name="Importado por"
+    )
+    fecha_importacion = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Fecha de Importación"
+    )
+    fecha_resolucion = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        verbose_name="Fecha de Resolución"
+    )
+
+    class Meta:
+        abstract = True # Esto lo convierte en un modelo base abstracto.
+        ordering = ['-fecha_importacion']
+
+
+class VentaImportada(TransaccionImportadaBase):
+    # Campos específicos de una venta, pueden ser nulos porque los datos pueden venir incompletos.
+    producto_nombre = models.CharField(max_length=255, null=True, blank=True)
+    cliente_nombre = models.CharField(max_length=255, null=True, blank=True)
+    cantidad = models.CharField(max_length=50, null=True, blank=True) # Como texto para capturar datos sucios
+    precio_venta = models.CharField(max_length=50, null=True, blank=True) # Como texto
+
+    # Relaciones que se llenarán después de la validación
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Venta Importada"
+        verbose_name_plural = "Ventas Importadas"
+
+
+class CompraImportada(TransaccionImportadaBase):
+    # Campos específicos de una compra
+    producto_nombre = models.CharField(max_length=255, null=True, blank=True)
+    proveedor_nombre = models.CharField(max_length=255, null=True, blank=True)
+    cantidad = models.CharField(max_length=50, null=True, blank=True)
+    precio_compra_unitario = models.CharField(max_length=50, null=True, blank=True)
+
+    # Relaciones que se llenarán después de la validación
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Compra Importada"
+        verbose_name_plural = "Compras Importadas"
