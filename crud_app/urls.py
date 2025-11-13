@@ -13,6 +13,8 @@ from .views import (
 )
 # Vistas personalizadas para acciones específicas
 from .views_uploads import VentaUploadView, CompraUploadView
+# Nuevas vistas para la conciliación
+from .views_reconciliation import VentaImportadaViewSet, CompraImportadaViewSet
 
 # Creamos un router y registramos nuestros viewsets con él.
 router = DefaultRouter()
@@ -22,6 +24,10 @@ router.register(r'productos', ProductoViewSet)
 router.register(r'compras', CompraViewSet)
 router.register(r'ventas', VentaViewSet)
 router.register(r'reportes/summary', ReporteSummary, basename='reporte-summary')
+
+# Registramos los nuevos ViewSets para la conciliación
+router.register(r'ventas-importadas', VentaImportadaViewSet)
+router.register(r'compras-importadas', CompraImportadaViewSet)
 
 # Las URLs de la API son determinadas automáticamente por el router.
 # Añadimos rutas personalizadas para acciones específicas como registro o carga de archivos.
