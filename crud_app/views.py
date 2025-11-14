@@ -1,3 +1,4 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,6 +22,9 @@ from .filters import (
     CompraBaseFilter, CompraGerenteFilter,
     VentaBaseFilter, VentaGerenteFilter
 )
+
+# Instanciamos el logger. Usar __name__ hace que el nombre del logger sea 'crud_app.views'.
+logger = logging.getLogger(__name__)
 
 
 class ProveedorViewSet(viewsets.ModelViewSet):
@@ -282,6 +286,9 @@ class VentaViewSet(viewsets.ModelViewSet):
         return VentaBaseFilter
 
     def list(self, request, *args, **kwargs):
+        # Nuestro nuevo log. Usamos f-strings para formatear el mensaje.
+        logger.info(f"Usuario '{request.user}' solicitando lista de ventas.")
+        
         queryset = self.get_queryset()
         filterset_class = self.get_filterset_class()
         filterset = filterset_class(request.query_params, queryset=queryset)

@@ -38,7 +38,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-_&+r!ayaliw0!=$dgu3d9w7hkic%@%-p5#17e!pfp&zd-l5n9_")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 
 
 
@@ -94,9 +94,9 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '50/min',
-        'user': '100/min',
-        'login': '5/min', # Límite específico para intentos de login
+        'anon': '10000/min',
+        'user': '10000/min',
+        'login': '20/min', # Límite específico para intentos de login
     }
 }
 
@@ -263,3 +263,41 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Configuración de Logging
+# Se añade una configuración robusta para el registro de eventos de la aplicación.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs/debug.log",
+            "maxBytes": 1024 * 1024 * 10,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO", # No queremos todos los DEBUG de Django, solo desde INFO
+            "propagate": True,
+        },
+        "crud_app": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG", # Para nuestra app, queremos ver todos los detalles
+            "propagate": True,
+        },
+    },
+}

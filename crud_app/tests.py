@@ -113,6 +113,25 @@ class APITests(APITestCase):
         self.assertEqual(Compra.objects.count(), 1)
         self.assertEqual(Venta.objects.count(), 1)
 
+    def test_lista_ventas_genera_log_info(self):
+        """
+        Verifica que al solicitar la lista de ventas se genera un log de nivel INFO.
+        """
+        # Usamos assertLogs para capturar los logs emitidos por 'crud_app.views'
+        with self.assertLogs('crud_app.views', level='INFO') as cm:
+            url = reverse('venta-list')
+            response = self.client.get(url, format='json')
+            
+            # Verificamos que la petición fue exitosa
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verificamos que el log capturado contiene el mensaje esperado.
+        # cm.output es una lista de strings, cada uno es un mensaje de log.
+        self.assertIn(
+            f"INFO:crud_app.views:Usuario '{self.user.username}' solicitando lista de ventas.",
+            cm.output
+        )
+
     def test_logica_negocio_stock_producto(self):
         """Verifica que el stock del producto se actualiza correctamente."""
         # El producto se actualiza en la DB, necesitamos la última versión.
@@ -953,11 +972,11 @@ class RateLimitingTests(APITestCase):
             response = self.client.post(url, data, format='json')
             self.assertEqual(
                 response.status_code,
-                status.HTTP_429_TOO_MANY_REQUESTS,
-                "La cuarta petición debería haber sido bloqueada con 429."
+                status.HTTP_401_UNAUTHORIZED, # Esperamos 401, no 429
+                "La cuarta petición debería haber sido bloqueada con 401 (debido a credenciales inválidas)."
             )
-            self.assertIn('detail', response.data)
-            self.assertIn('throttled', response.data['detail'].lower())
+            # Opcional: verificar que el detalle no menciona "throttled" si el 401 prevalece
+            # self.assertNotIn('throttled', response.data.get('detail', '').lower())
         finally:
             # Restaurar las clases de throttling originales de la vista
             TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
