@@ -293,6 +293,28 @@ class APITests(APITestCase):
         response = self.client.post(restaurar_url, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_not_found_error_uses_custom_handler(self):
+        """
+        Verifica que un error 404 Not Found utiliza el manejador de excepciones personalizado.
+        """
+        # Hacemos una petición a un recurso que no existe
+        url = reverse('producto-detail', args=[99999])
+        response = self.client.get(url, format='json')
+
+        # Verificamos que el código de estado es 404
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # Verificamos que la respuesta tiene el formato personalizado
+        self.assertIn('success', response.data)
+        self.assertEqual(response.data['success'], False)
+        
+        self.assertIn('error_code', response.data)
+        self.assertEqual(response.data['error_code'], 'not_found')
+        
+        self.assertIn('message', response.data)
+        # El mensaje ahora es un ErrorDetail, lo convertimos a string para comparar
+        self.assertEqual(str(response.data['message']), 'No Producto matches the given query.')
+
 
 # --- Pruebas para el rol de Gerente ---
 
@@ -741,8 +763,9 @@ class UserRegistrationTests(APITestCase):
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('password', response.data)
-        self.assertEqual(response.data['password'][0], 'Las contraseñas no coinciden.')
+        self.assertEqual(response.data['success'], False)
+        self.assertEqual(response.data['error_code'], 'bad_request')
+        self.assertIn('password', response.data['details'])
         self.assertEqual(User.objects.filter(username='baduser').count(), 0)
 
     def test_user_registration_missing_fields(self):
@@ -757,7 +780,9 @@ class UserRegistrationTests(APITestCase):
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('email', response.data)
+        self.assertEqual(response.data['success'], False)
+        self.assertEqual(response.data['error_code'], 'bad_request')
+        self.assertIn('email', response.data['details'])
         self.assertEqual(User.objects.filter(username='incomplete').count(), 0)
 
     def test_pending_user_cannot_access_protected_endpoint(self):
@@ -892,8 +917,9 @@ class JWTTests(APITestCase):
         
         # Assert: Verificar que el refresh token antiguo ya no es válido
         self.assertEqual(response_old_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn('code', response_old_refresh.data)
-        self.assertEqual(response_old_refresh.data['code'], 'token_not_valid')
+        self.assertEqual(response_old_refresh.data['success'], False)
+        self.assertEqual(response_old_refresh.data['error_code'], 'unauthenticated')
+        self.assertIn('blacklisted', str(response_old_refresh.data['message']))
 
     def test_logout_blacklists_refresh_token(self):
         """
@@ -919,8 +945,9 @@ class JWTTests(APITestCase):
         
         # Assert: Verificar que el refresh token blacklisteado ya no es válido
         self.assertEqual(response_blacklisted_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn('code', response_blacklisted_refresh.data)
-        self.assertEqual(response_blacklisted_refresh.data['code'], 'token_not_valid')
+        self.assertEqual(response_blacklisted_refresh.data['success'], False)
+        self.assertEqual(response_blacklisted_refresh.data['error_code'], 'unauthenticated')
+        self.assertIn('blacklisted', str(response_blacklisted_refresh.data['message']))
 
 
 # --- NUEVA CLASE DE PRUEBAS PARA RATE LIMITING ---

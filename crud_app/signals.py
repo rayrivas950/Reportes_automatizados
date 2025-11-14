@@ -20,7 +20,7 @@ def revertir_stock_compra(sender, instance, **kwargs):
     """
     Revierte el stock del producto cuando se elimina una compra.
     """
-    Producto.objects.filter(pk=instance.producto.pk).update(stock=F('stock') - instance.cantidad)
+    Producto.objects.filter(pk=instance.producto.pk).update(stock=F('stock') + instance.cantidad)
 
 @receiver(post_save, sender=Venta)
 def actualizar_stock_venta(sender, instance, created, **kwargs):
