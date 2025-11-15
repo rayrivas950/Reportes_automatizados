@@ -19,6 +19,8 @@ dependencies = [
     "drf-spectacular (>=0.29.0,<0.30.0)",
     "pandas (>=2.3.3,<3.0.0)",
     "word2number-es (>=1.0.1,<2.0.0)",
+    "gunicorn (>=22.0.0,<23.0.0)",
+    "dj-database-url (>=2.1.0,<3.0.0)",
 ]
 
 

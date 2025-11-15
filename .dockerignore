@@ -1,0 +1,30 @@
+# Git
+.git/
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Entorno y dependencias locales
+.venv/
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Archivos de configuración sensibles
+.env*
+
+# Logs
+logs/
+
+# Archivos de IDE
+.idea/
+.vscode/
+
+# Test reports
+.pytest_cache/
+.coverage
+htmlcov/

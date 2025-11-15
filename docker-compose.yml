@@ -1,0 +1,60 @@
+# Especifica la versión de la sintaxis de Docker Compose.
+version: '3.8'
+
+# Define los servicios (contenedores) que componen nuestra aplicación.
+services:
+  # --- Servicio de la Base de Datos ---
+  db:
+    # Usa la imagen oficial de PostgreSQL, versión 16, basada en Alpine (más ligera).
+    image: postgres:16-alpine
+    # Define un volumen llamado 'postgres_data'. Esto es CRÍTICO: asegura que los
+    # datos de tu base de datos persistan incluso si el contenedor se detiene o se elimina.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    # Carga las variables de entorno desde el archivo .env.
+    # Estas variables son usadas por la imagen de Postgres para inicializar la base de datos.
+    env_file:
+      - .env
+    # Mapea el puerto 5432 del contenedor al 5432 de tu máquina.
+    # Esto es opcional, pero te permite conectar un cliente de base de datos
+    # desde tu máquina al contenedor para inspeccionar los datos.
+    ports:
+      - "5432:5432"
+    # Define una política de reinicio. 'unless-stopped' reiniciará el contenedor
+    # automáticamente a menos que lo detengas manualmente.
+    restart: unless-stopped
+
+  # --- Servicio de la API (nuestra app Django) ---
+  api:
+    # Construye la imagen usando el Dockerfile en el directorio actual ('.').
+    build: .
+    # Sobrescribe el comando por defecto del Dockerfile.
+    # Para desarrollo, usamos el servidor de Django 'runserver' porque permite
+    # el hot-reloading (recarga automática al cambiar el código).
+    # El '0.0.0.0:8000' es para que sea accesible desde fuera del contenedor.
+    command: python manage.py runserver 0.0.0.0:8000
+    # Monta el directorio actual ('.') de tu máquina en el directorio '/app' del contenedor.
+    # Este es el truco para el hot-reloading: los cambios en tu código se reflejan
+    # instantáneamente dentro del contenedor.
+    volumes:
+      - .:/app
+    # Mapea el puerto 8000 de tu máquina al 8000 del contenedor, para que puedas
+    # acceder a la API desde tu navegador o cliente de API en http://localhost:8000.
+    ports:
+      - "8000:8000"
+    # Carga las variables de entorno desde el archivo .env.
+    # Nuestra app Django las usará para conectarse a la base de datos.
+    env_file:
+      - .env
+    # Establece una dependencia. 'api' no se iniciará hasta que 'db' esté lista.
+    # Esto previene que la API falle al intentar conectarse a una base de datos que aún no ha arrancado.
+    depends_on:
+      - db
+    # Define una política de reinicio.
+    restart: unless-stopped
+
+# --- Volúmenes ---
+# Declara el volumen nombrado que usamos en el servicio 'db'.
+# Docker gestionará este volumen por nosotros.
+volumes:
+  postgres_data:
