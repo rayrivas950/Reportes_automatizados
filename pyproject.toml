@@ -35,5 +35,5 @@ dev = [
     "faker (>=38.0.0,<39.0.0)"
 ]
 
-[tool.poetry.packages]
+[[tool.poetry.packages]]
 include = "crud_app"

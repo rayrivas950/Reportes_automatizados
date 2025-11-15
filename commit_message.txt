@@ -1,9 +1,9 @@
-Este commit aborda varios problemas y refactoriza la base de código para mejorar la fiabilidad de las pruebas y la corrección de la API.
+fix(ci): Solucionar fallos del pipeline de CI y definir configuración de Poetry
 
-Los cambios clave incluyen:
-- **Modelos:** Se añadió `related_name` explícito para las claves foráneas en los modelos `Compra` y `Venta`. Se eliminaron los métodos `save()` problemáticos, delegando la lógica de negocio a las señales de Django.
-- **Serializadores:** Se eliminó `depth=1` de `CompraSerializer` y `VentaSerializer` para permitir operaciones de escritura en campos relacionados.
-- **Señales:** Se introdujo `crud_app/signals.py` con manejadores `post_save` y `post_delete` para `Compra` y `Venta` para actualizar atómicamente el stock del producto, registrados a través de `apps.py`.
-- **Pruebas:** Se refactorizaron `APITests` para usar `setUp` para la configuración por prueba y `setUpClass` para la limpieza de la base de datos, asegurando el aislamiento de las pruebas y la resistencia a datos obsoletos. Se corrigió la inversión de URL para el endpoint de resumen.
-- **Vistas y URLs:** Se refactorizó `ReporteSummaryView` a un `ViewSet` llamado `ReporteSummary` y se registró correctamente con el router de DRF. Se añadió la importación `models` faltante en `views.py`.
-- **Gitignore:** Se creó un archivo `.gitignore` completo para evitar que se suban archivos no deseados.
+Este commit aborda múltiples problemas que impedían el correcto funcionamiento del pipeline de CI y la instalación del proyecto con Poetry:
+
+1.  **Configuración de Poetry:** Se añade la sección `[[tool.poetry.packages]]` en `pyproject.toml` para definir explícitamente la ubicación del paquete (`crud_app`), solucionando el error "No file/folder found for package".
+2.  **Documentación del Proyecto:** Se crea un archivo `README.md` básico para satisfacer el requisito de `poetry install` y proporcionar una descripción inicial del proyecto.
+3.  **Estabilidad del CI:** Se corrige la configuración de `trivy-action` en `.github/workflows/ci.yml`, cambiando `@master` a la etiqueta de versión mayor `@0` para asegurar la estabilidad y resolver el error de "repository not found".
+
+Estos cambios garantizan que el proyecto pueda ser instalado correctamente por Poetry y que el pipeline de CI se ejecute de manera exitosa y reproducible.
