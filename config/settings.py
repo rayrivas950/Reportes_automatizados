@@ -90,8 +90,6 @@ CACHES = {
 }
 
 # Configuración de djangorestframework-simplejwt
-from datetime import timedelta
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # Token de acceso de corta duración
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),  # Token de refresco de larga duración

@@ -51,18 +51,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      # 2. Ejecuta la Acción oficial de Trivy para escanear el sistema de archivos.
-      - name: Run Trivy vulnerability scanner
-        uses: aquasec/trivy-action@v0.20.0
-        with:
-          # Tipo de escaneo: 'fs' para sistema de archivos.
-          scan-type: 'fs'
-          # Escanea todos los archivos del repositorio.
-          scan-ref: '.'
-          # Formato de salida: una tabla en el log del job.
-          format: 'table'
-          # Nivel de severidad: solo falla el job si se encuentran vulnerabilidades CRÍTICAS.
-          # Podemos ajustar esto a 'HIGH' o 'MEDIUM' para ser más estrictos.
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: 'CRITICAL'
+      # 2. Ejecuta Trivy directamente a través de Docker para escanear el sistema de archivos.
+      - name: Run Trivy vulnerability scanner in Docker
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/scan aquasec/trivy:latest fs /scan --exit-code 1 --severity CRITICAL --ignore-unfixed
