@@ -13,7 +13,7 @@ from rest_framework_simplejwt.token_blacklist.models import (
 from crud_app.views_auth import (
     TokenObtainPairViewWithThrottle,
 )  # Importamos la vista personalizada
-
+from rest_framework.throttling import ScopedRateThrottle
 
 
 User = get_user_model()  # Obtenemos el modelo de usuario activo
@@ -1106,3 +1106,4 @@ class RateLimitingTests(APITestCase):
         finally:
             # Restaurar las clases de throttling originales de la vista
             TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
+

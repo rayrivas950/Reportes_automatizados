@@ -1,9 +1,7 @@
-fix(ci): Solucionar fallos del pipeline de CI y definir configuración de Poetry
+fix(ci): Corregir errores de linting y cambiar a Trivy en Docker
 
-Este commit aborda múltiples problemas que impedían el correcto funcionamiento del pipeline de CI y la instalación del proyecto con Poetry:
+Se solucionan dos problemas persistentes en el pipeline de CI:
 
-1.  **Configuración de Poetry:** Se añade la sección `[[tool.poetry.packages]]` en `pyproject.toml` para definir explícitamente la ubicación del paquete (`crud_app`), solucionando el error "No file/folder found for package".
-2.  **Documentación del Proyecto:** Se crea un archivo `README.md` básico para satisfacer el requisito de `poetry install` y proporcionar una descripción inicial del proyecto.
-3.  **Estabilidad del CI:** Se corrige la configuración de `trivy-action` en `.github/workflows/ci.yml`, cambiando `@master` a la etiqueta de versión mayor `@0` para asegurar la estabilidad y resolver el error de "repository not found".
+1.  **Error de Linting (E402/F811):** Se elimina una importación duplicada de `timedelta` en `config/settings.py` y una importación mal ubicada de `ScopedRateThrottle` en `crud_app/tests.py`. Esto resuelve definitivamente los fallos del job `lint`.
 
-Estos cambios garantizan que el proyecto pueda ser instalado correctamente por Poetry y que el pipeline de CI se ejecute de manera exitosa y reproducible.
+2.  **Error en Security Scan:** Se reemplaza el uso de la acción `aquasec/trivy-action`, que fallaba al no poder ser resuelta, por una ejecución directa de Trivy dentro de un contenedor Docker. Este método es más robusto y soluciona el fallo del job `security_scan`.
