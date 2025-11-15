@@ -34,3 +34,6 @@ dev = [
     "ruff (>=0.14.3,<0.15.0)",
     "faker (>=38.0.0,<39.0.0)"
 ]
+
+[tool.poetry.packages]
+include = "crud_app"

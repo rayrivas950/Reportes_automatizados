@@ -53,7 +53,7 @@ jobs:
 
       # 2. Ejecuta la Acción oficial de Trivy para escanear el sistema de archivos.
       - name: Run Trivy vulnerability scanner
-        uses: aquasec/trivy-action@v0.20.0
+        uses: aquasec/trivy-action@0
         with:
           # Tipo de escaneo: 'fs' para sistema de archivos.
           scan-type: 'fs'
