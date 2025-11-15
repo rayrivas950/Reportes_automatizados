@@ -1,0 +1,68 @@
+# Nombre del flujo de trabajo que se mostrará en la pestaña "Actions" de GitHub.
+name: CI Pipeline
+
+# Define cuándo se debe ejecutar este flujo de trabajo.
+# Se ejecutará en cada 'push' a cualquier rama y en cada 'pull request'.
+on: [push, pull_request]
+
+# Define los trabajos (jobs) que se ejecutarán como parte de este pipeline.
+jobs:
+  # --- Primer Job: Linting y Formateo ---
+  lint:
+    # Nombre del job que se mostrará en la UI de GitHub.
+    name: Lint & Format Check
+    # La máquina virtual donde se ejecutará el job. 'ubuntu-latest' es una opción estándar y económica.
+    runs-on: ubuntu-latest
+    # Los pasos que se ejecutarán secuencialmente en este job.
+    steps:
+      # 1. Descarga el código del repositorio a la máquina virtual.
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # 2. Configura el entorno de Python en la versión 3.12.
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      # 3. Instala Poetry.
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      # 4. Instala las dependencias del proyecto usando Poetry.
+      # El cacheo acelera las futuras ejecuciones al no tener que descargar todo de nuevo.
+      - name: Install dependencies
+        run: poetry install
+
+      # 5. Ejecuta Ruff para verificar si hay errores de linting.
+      - name: Run linter
+        run: poetry run ruff check .
+
+      # 6. Ejecuta Ruff para verificar si el código está formateado correctamente.
+      - name: Run formatter check
+        run: poetry run ruff format --check .
+
+  # --- Segundo Job: Escaneo de Seguridad ---
+  security_scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Descarga el código del repositorio.
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # 2. Ejecuta la Acción oficial de Trivy para escanear el sistema de archivos.
+      - name: Run Trivy vulnerability scanner
+        uses: aquasec/trivy-action@master
+        with:
+          # Tipo de escaneo: 'fs' para sistema de archivos.
+          scan-type: 'fs'
+          # Escanea todos los archivos del repositorio.
+          scan-ref: '.'
+          # Formato de salida: una tabla en el log del job.
+          format: 'table'
+          # Nivel de severidad: solo falla el job si se encuentran vulnerabilidades CRÍTICAS.
+          # Podemos ajustar esto a 'HIGH' o 'MEDIUM' para ser más estrictos.
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL'
