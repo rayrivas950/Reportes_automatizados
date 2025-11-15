@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("crud_app", "0004_auto_20251107_1951"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

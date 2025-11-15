@@ -2,7 +2,8 @@
 import re
 from decimal import Decimal, InvalidOperation
 from rest_framework import serializers
-from word2number_es import w2n # Usamos la nueva librería para español
+from word2number_es import w2n  # Usamos la nueva librería para español
+
 
 class VentaImportadaSerializer(serializers.Serializer):
     producto = serializers.CharField(max_length=255)
@@ -14,7 +15,7 @@ class VentaImportadaSerializer(serializers.Serializer):
         value_str = str(value).strip()
         if not value_str:
             raise serializers.ValidationError("La cantidad no puede estar vacía.")
-        
+
         try:
             # Primero, intentar la conversión numérica directa
             return int(float(value_str))
@@ -23,22 +24,29 @@ class VentaImportadaSerializer(serializers.Serializer):
             try:
                 return w2n.word_to_num(value_str)
             except ValueError:
-                raise serializers.ValidationError("No es un número ni una palabra numérica válida.")
+                raise serializers.ValidationError(
+                    "No es un número ni una palabra numérica válida."
+                )
 
     def validate_precio_venta(self, value):
         value_str = str(value).strip()
-        cleaned_value = re.sub(r'[^\d.]', '', value_str)
-        
+        cleaned_value = re.sub(r"[^\d.]", "", value_str)
+
         if not cleaned_value:
-            raise serializers.ValidationError("El precio de venta no puede estar vacío.")
+            raise serializers.ValidationError(
+                "El precio de venta no puede estar vacío."
+            )
 
         try:
             return Decimal(cleaned_value)
         except InvalidOperation:
-            raise serializers.ValidationError("El precio de venta debe ser un número válido.")
+            raise serializers.ValidationError(
+                "El precio de venta debe ser un número válido."
+            )
 
     def validate(self, data):
         return data
+
 
 class CompraImportadaSerializer(serializers.Serializer):
     producto = serializers.CharField(max_length=255)
@@ -57,19 +65,25 @@ class CompraImportadaSerializer(serializers.Serializer):
             try:
                 return w2n.word_to_num(value_str)
             except ValueError:
-                raise serializers.ValidationError("No es un número ni una palabra numérica válida.")
+                raise serializers.ValidationError(
+                    "No es un número ni una palabra numérica válida."
+                )
 
     def validate_precio_compra_unitario(self, value):
         value_str = str(value).strip()
-        cleaned_value = re.sub(r'[^\d.]', '', value_str)
+        cleaned_value = re.sub(r"[^\d.]", "", value_str)
 
         if not cleaned_value:
-            raise serializers.ValidationError("El precio de compra no puede estar vacío.")
+            raise serializers.ValidationError(
+                "El precio de compra no puede estar vacío."
+            )
 
         try:
             return Decimal(cleaned_value)
         except InvalidOperation:
-            raise serializers.ValidationError("El precio de compra unitario debe ser un número válido.")
+            raise serializers.ValidationError(
+                "El precio de compra unitario debe ser un número válido."
+            )
 
     def validate(self, data):
         return data

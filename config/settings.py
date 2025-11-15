@@ -1,14 +1,13 @@
 import os
-import dj_database_url # Importar dj_database_url
+import dj_database_url  # Importar dj_database_url
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
 from pathlib import Path
 
 
-
-load_dotenv() # Carga las variables de entorno del archivo .env
-
+load_dotenv()  # Carga las variables de entorno del archivo .env
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -16,13 +15,9 @@ load_dotenv() # Carga las variables de entorno del archivo .env
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-
-
-
 # Quick-start development settings - unsuitable for production
 
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
 
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -30,11 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 
 
-
 # SECURITY WARNING: don't run with debug turned on in production!
 
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
-
 
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
@@ -42,11 +35,10 @@ ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
 # Email configuration for development
 # In development, emails will be printed to the console.
 # For production, this should be changed to a real email backend (e.g., SMTP).
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # Application definition
-
 
 
 INSTALLED_APPS = [
@@ -56,46 +48,44 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Apps de terceros
     "rest_framework",
     "django_filters",
-    "rest_framework_simplejwt", # Añadido para JWT
-    "rest_framework_simplejwt.token_blacklist", # Requerido para la blacklist de tokens
-    "simple_history",           # Añadido para el historial de cambios
-    "drf_spectacular",          # Añadido para la documentación OpenAPI/Swagger
-
+    "rest_framework_simplejwt",  # Añadido para JWT
+    "rest_framework_simplejwt.token_blacklist",  # Requerido para la blacklist de tokens
+    "simple_history",  # Añadido para el historial de cambios
+    "drf_spectacular",  # Añadido para la documentación OpenAPI/Swagger
     # Nuestras apps
     "crud_app",
 ]
 
 # Configuración de Django REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'EXCEPTION_HANDLER': 'crud_app.exceptions.custom_exception_handler',
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication', # Para el admin de Django
-        'rest_framework.authentication.BasicAuthentication',    # Para pruebas o admin
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "EXCEPTION_HANDLER": "crud_app.exceptions.custom_exception_handler",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",  # Para el admin de Django
+        "rest_framework.authentication.BasicAuthentication",  # Para pruebas o admin
     ),
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
     ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '10000/min',
-        'user': '10000/min',
-        'login': '20/min', # Límite específico para intentos de login
-    }
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "10000/min",
+        "user": "10000/min",
+        "login": "20/min",  # Límite específico para intentos de login
+    },
 }
 
 # Configuración de CACHES para throttling de DRF
 # Usamos una caché en memoria local, adecuada para desarrollo y pruebas.
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake', # Un nombre único para la caché
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",  # Un nombre único para la caché
     }
 }
 
@@ -103,10 +93,10 @@ CACHES = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5), # Token de acceso de corta duración
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Token de refresco de larga duración
-    'ROTATE_REFRESH_TOKENS': True, # Rotar tokens de refresco para mejorar la seguridad
-    'BLACKLIST_AFTER_ROTATION': True, # Usar la lista negra para invalidar tokens en logout
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # Token de acceso de corta duración
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),  # Token de refresco de larga duración
+    "ROTATE_REFRESH_TOKENS": True,  # Rotar tokens de refresco para mejorar la seguridad
+    "BLACKLIST_AFTER_ROTATION": True,  # Usar la lista negra para invalidar tokens en logout
 }
 
 # # Configuración de drf-spectacular para la documentación OpenAPI/Swagger
@@ -122,65 +112,37 @@ SIMPLE_JWT = {
 
 
 MIDDLEWARE = [
-
     "django.middleware.security.SecurityMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
-
     "django.middleware.common.CommonMiddleware",
-
     "django.middleware.csrf.CsrfViewMiddleware",
-
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-
     "django.contrib.messages.middleware.MessageMiddleware",
-
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
-    "simple_history.middleware.HistoryRequestMiddleware", # Añadido para el historial
-
+    "simple_history.middleware.HistoryRequestMiddleware",  # Añadido para el historial
 ]
-
 
 
 ROOT_URLCONF = "config.urls"
 
 
-
 TEMPLATES = [
-
     {
-
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-
         "DIRS": [],
-
         "APP_DIRS": True,
-
         "OPTIONS": {
-
             "context_processors": [
-
                 "django.template.context_processors.request",
-
                 "django.contrib.auth.context_processors.auth",
-
                 "django.contrib.messages.context_processors.messages",
-
             ],
-
         },
-
     },
-
 ]
 
 
-
 WSGI_APPLICATION = "config.wsgi.application"
-
-
-
 
 
 # Database
@@ -190,38 +152,28 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Configuración de la base de datos
 # Intenta usar DATABASE_URL si está disponible (útil para entornos de producción/Docker)
 # Si no, usa las variables individuales (compatibilidad con configuraciones existentes)
-if os.getenv('DATABASE_URL'):
+if os.getenv("DATABASE_URL"):
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"), conn_max_age=600
         )
     }
     # Configuración de la base de datos de prueba si DATABASE_URL está presente
-    if 'default' in DATABASES and 'NAME' in DATABASES['default']:
-        DATABASES['default']['TEST'] = {'NAME': DATABASES['default']['NAME'] + '_test'}
+    if "default" in DATABASES and "NAME" in DATABASES["default"]:
+        DATABASES["default"]["TEST"] = {"NAME": DATABASES["default"]["NAME"] + "_test"}
 else:
     DATABASES = {
-
         "default": {
-
             "ENGINE": "django.db.backends.postgresql",
-
             "NAME": os.getenv("POSTGRES_DB"),
-
             "USER": os.getenv("POSTGRES_USER"),
-
             "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-
             "HOST": os.getenv("POSTGRES_HOST"),
-
             "PORT": os.getenv("POSTGRES_PORT", "5432"),
             "TEST": {
-                "NAME": os.getenv("POSTGRES_DB") + "_test", # DB separada para pruebas
+                "NAME": os.getenv("POSTGRES_DB") + "_test",  # DB separada para pruebas
             },
-
         }
-
     }
 
 
@@ -293,12 +245,12 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["console", "file"],
-            "level": "INFO", # No queremos todos los DEBUG de Django, solo desde INFO
+            "level": "INFO",  # No queremos todos los DEBUG de Django, solo desde INFO
             "propagate": True,
         },
         "crud_app": {
             "handlers": ["console", "file"],
-            "level": "DEBUG", # Para nuestra app, queremos ver todos los detalles
+            "level": "DEBUG",  # Para nuestra app, queremos ver todos los detalles
             "propagate": True,
         },
     },

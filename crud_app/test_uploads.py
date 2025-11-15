@@ -5,11 +5,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
-from decimal import Decimal
 
 from .models import VentaImportada
 
 User = get_user_model()
+
 
 class UploadTests(APITestCase):
     """
@@ -23,18 +23,26 @@ class UploadTests(APITestCase):
         haciendo las pruebas más robustas.
         """
         # Usar get_or_create para evitar errores si los grupos ya existen
-        self.gerente_group, _ = Group.objects.get_or_create(name='Gerente')
-        self.empleado_group, _ = Group.objects.get_or_create(name='Empleado')
-        self.otro_group, _ = Group.objects.get_or_create(name='OtroRol')
+        self.gerente_group, _ = Group.objects.get_or_create(name="Gerente")
+        self.empleado_group, _ = Group.objects.get_or_create(name="Empleado")
+        self.otro_group, _ = Group.objects.get_or_create(name="OtroRol")
 
         # Crear usuarios
-        self.gerente_user = User.objects.create_user(username='gerente', password='password123')
+        self.gerente_user = User.objects.create_user(
+            username="gerente", password="password123"
+        )
         self.gerente_user.groups.add(self.gerente_group)
 
-        self.empleado_user = User.objects.create_user(username='empleado', password='password123')
-        self.empleado_user.groups.add(self.empleado_group) # Corregido: debe ser self.empleado_group
+        self.empleado_user = User.objects.create_user(
+            username="empleado", password="password123"
+        )
+        self.empleado_user.groups.add(
+            self.empleado_group
+        )  # Corregido: debe ser self.empleado_group
 
-        self.otro_user = User.objects.create_user(username='otro', password='password123')
+        self.otro_user = User.objects.create_user(
+            username="otro", password="password123"
+        )
         self.otro_user.groups.add(self.otro_group)
 
         # Cliente de API
@@ -47,10 +55,20 @@ class UploadTests(APITestCase):
         """
         if data_rows is None:
             data_rows = [
-                {'producto': 'Viga de Acero', 'cliente': 'Cliente A', 'cantidad': 10, 'precio_venta': 150.00},
-                {'producto': 'Cemento', 'cliente': 'Cliente B', 'cantidad': 50, 'precio_venta': 8.50},
+                {
+                    "producto": "Viga de Acero",
+                    "cliente": "Cliente A",
+                    "cantidad": 10,
+                    "precio_venta": 150.00,
+                },
+                {
+                    "producto": "Cemento",
+                    "cliente": "Cliente B",
+                    "cantidad": 50,
+                    "precio_venta": 8.50,
+                },
             ]
-        
+
         if column_names:
             # Asegurarse de que los datos se ajusten a las columnas especificadas
             processed_data = []
@@ -60,11 +78,11 @@ class UploadTests(APITestCase):
             df = pd.DataFrame(processed_data, columns=column_names)
         else:
             df = pd.DataFrame(data_rows)
-        
+
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False)
         buffer.seek(0)
-        
+
         return buffer
 
     def test_subida_venta_exitosa_como_gerente(self):
@@ -73,19 +91,23 @@ class UploadTests(APITestCase):
         """
         self.client.force_authenticate(user=self.gerente_user)
         archivo_excel = self._crear_excel_en_memoria()
-        archivo_excel.name = 'test_ventas.xlsx'
-        url = '/api/ventas/upload/'
-        
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        archivo_excel.name = "test_ventas.xlsx"
+        url = "/api/ventas/upload/"
+
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(VentaImportada.objects.count(), 2)
-        
+
         primera_venta_importada = VentaImportada.objects.first()
         self.assertEqual(primera_venta_importada.importado_por, self.gerente_user)
-        self.assertEqual(primera_venta_importada.estado, VentaImportada.Estados.PENDIENTE)
-        self.assertEqual(primera_venta_importada.datos_fila_original['producto'], 'Viga de Acero')
-        self.assertEqual(primera_venta_importada.datos_fila_original['cantidad'], 10)
+        self.assertEqual(
+            primera_venta_importada.estado, VentaImportada.Estados.PENDIENTE
+        )
+        self.assertEqual(
+            primera_venta_importada.datos_fila_original["producto"], "Viga de Acero"
+        )
+        self.assertEqual(primera_venta_importada.datos_fila_original["cantidad"], 10)
 
     def test_subida_fallida_por_permisos(self):
         """
@@ -93,10 +115,10 @@ class UploadTests(APITestCase):
         """
         self.client.force_authenticate(user=self.otro_user)
         archivo_excel = self._crear_excel_en_memoria()
-        archivo_excel.name = 'test_permisos.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel.name = "test_permisos.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(VentaImportada.objects.count(), 0)
@@ -107,13 +129,13 @@ class UploadTests(APITestCase):
         """
         self.client.force_authenticate(user=self.gerente_user)
         archivo_txt = io.StringIO("esto no es un excel")
-        archivo_txt.name = 'archivo_invalido.txt'
-        url = '/api/ventas/upload/'
+        archivo_txt.name = "archivo_invalido.txt"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_txt}, format='multipart')
+        response = self.client.post(url, {"file": archivo_txt}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Formato de archivo no válido", response.data['error'])
+        self.assertIn("Formato de archivo no válido", response.data["error"])
 
     def test_subida_ignora_columnas_extras(self):
         """
@@ -121,43 +143,68 @@ class UploadTests(APITestCase):
         pero conservadas en el campo de datos originales.
         """
         self.client.force_authenticate(user=self.gerente_user)
-        column_names = ['producto', 'cliente', 'cantidad', 'precio_venta', 'transporte']
+        column_names = ["producto", "cliente", "cantidad", "precio_venta", "transporte"]
         data_rows = [
-            {'producto': 'Viga de Acero', 'cliente': 'Cliente A', 'cantidad': 10, 'precio_venta': 150.00, 'transporte': 'Transportes Veloz'},
-            {'producto': 'Cementos', 'cliente': 'Cliente B', 'cantidad': 50, 'precio_venta': 8.50, 'transporte': 'Carga Segura'}
+            {
+                "producto": "Viga de Acero",
+                "cliente": "Cliente A",
+                "cantidad": 10,
+                "precio_venta": 150.00,
+                "transporte": "Transportes Veloz",
+            },
+            {
+                "producto": "Cementos",
+                "cliente": "Cliente B",
+                "cantidad": 50,
+                "precio_venta": 8.50,
+                "transporte": "Carga Segura",
+            },
         ]
-        archivo_excel = self._crear_excel_en_memoria(column_names=column_names, data_rows=data_rows)
-        archivo_excel.name = 'test_extra_cols.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel = self._crear_excel_en_memoria(
+            column_names=column_names, data_rows=data_rows
+        )
+        archivo_excel.name = "test_extra_cols.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(VentaImportada.objects.count(), 2)
 
         primera_venta_importada = VentaImportada.objects.first()
-        self.assertIn('transporte', primera_venta_importada.datos_fila_original)
-        self.assertEqual(primera_venta_importada.datos_fila_original['transporte'], 'Transportes Veloz')
+        self.assertIn("transporte", primera_venta_importada.datos_fila_original)
+        self.assertEqual(
+            primera_venta_importada.datos_fila_original["transporte"],
+            "Transportes Veloz",
+        )
 
     def test_subida_fallida_por_columna_faltante(self):
         """
         Prueba que la subida falla si falta una columna requerida en el Excel.
         """
         self.client.force_authenticate(user=self.gerente_user)
-        column_names = ['producto', 'cliente', 'precio_venta']
+        column_names = ["producto", "cliente", "precio_venta"]
         data_rows = [
-            {'producto': 'Viga de Acero', 'cliente': 'Cliente A', 'precio_venta': 150.00},
-            {'producto': 'Cemento', 'cliente': 'Cliente B', 'precio_venta': 8.50},
+            {
+                "producto": "Viga de Acero",
+                "cliente": "Cliente A",
+                "precio_venta": 150.00,
+            },
+            {"producto": "Cemento", "cliente": "Cliente B", "precio_venta": 8.50},
         ]
-        archivo_excel = self._crear_excel_en_memoria(column_names=column_names, data_rows=data_rows)
-        archivo_excel.name = 'test_missing_col.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel = self._crear_excel_en_memoria(
+            column_names=column_names, data_rows=data_rows
+        )
+        archivo_excel.name = "test_missing_col.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Faltan las siguientes columnas requeridas", response.data['error'])
-        self.assertIn("cantidad", response.data['error']) # Ajustado: sin comillas
+        self.assertIn(
+            "Faltan las siguientes columnas requeridas", response.data["error"]
+        )
+        self.assertIn("cantidad", response.data["error"])  # Ajustado: sin comillas
         self.assertEqual(VentaImportada.objects.count(), 0)
 
     def test_subida_fallida_por_columnas_duplicadas_semanticamente(self):
@@ -165,19 +212,36 @@ class UploadTests(APITestCase):
         Prueba que la subida falla si hay columnas duplicadas semánticamente en el Excel.
         """
         self.client.force_authenticate(user=self.gerente_user)
-        column_names = ['producto', 'cliente', 'cantidad', 'precio_venta', 'valor']
+        column_names = ["producto", "cliente", "cantidad", "precio_venta", "valor"]
         data_rows = [
-            {'producto': 'Viga de Acero', 'cliente': 'Cliente A', 'cantidad': 10, 'precio_venta': 150.00, 'valor': 150.00},
-            {'producto': 'Cemento', 'cliente': 'Cliente B', 'cantidad': 50, 'precio_venta': 8.50, 'valor': 8.50},
+            {
+                "producto": "Viga de Acero",
+                "cliente": "Cliente A",
+                "cantidad": 10,
+                "precio_venta": 150.00,
+                "valor": 150.00,
+            },
+            {
+                "producto": "Cemento",
+                "cliente": "Cliente B",
+                "cantidad": 50,
+                "precio_venta": 8.50,
+                "valor": 8.50,
+            },
         ]
-        archivo_excel = self._crear_excel_en_memoria(column_names=column_names, data_rows=data_rows)
-        archivo_excel.name = 'test_duplicate_cols.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel = self._crear_excel_en_memoria(
+            column_names=column_names, data_rows=data_rows
+        )
+        archivo_excel.name = "test_duplicate_cols.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("El archivo contiene columnas duplicadas semánticamente", response.data['error'])
+        self.assertIn(
+            "El archivo contiene columnas duplicadas semánticamente",
+            response.data["error"],
+        )
         self.assertEqual(VentaImportada.objects.count(), 0)
 
     def test_subida_exitosa_con_columnas_alias(self):
@@ -185,27 +249,44 @@ class UploadTests(APITestCase):
         Prueba que la subida es exitosa cuando se usan alias para los nombres de las columnas.
         """
         self.client.force_authenticate(user=self.gerente_user)
-        column_names = ['nombre producto', 'cliente', 'unidades', 'precio']
+        column_names = ["nombre producto", "cliente", "unidades", "precio"]
         data_rows = [
-            {'nombre producto': 'Viga de Acero', 'cliente': 'Cliente A', 'unidades': 10, 'precio': 150.00},
-            {'nombre producto': 'Cemento', 'cliente': 'Cliente B', 'unidades': 50, 'precio': 8.50},
+            {
+                "nombre producto": "Viga de Acero",
+                "cliente": "Cliente A",
+                "unidades": 10,
+                "precio": 150.00,
+            },
+            {
+                "nombre producto": "Cemento",
+                "cliente": "Cliente B",
+                "unidades": 50,
+                "precio": 8.50,
+            },
         ]
-        archivo_excel = self._crear_excel_en_memoria(column_names=column_names, data_rows=data_rows)
-        archivo_excel.name = 'test_alias_cols.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel = self._crear_excel_en_memoria(
+            column_names=column_names, data_rows=data_rows
+        )
+        archivo_excel.name = "test_alias_cols.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(VentaImportada.objects.count(), 2)
-        
+
         primera_venta_importada = VentaImportada.objects.first()
         # Verificamos que los datos originales reflejan los alias
-        self.assertEqual(primera_venta_importada.datos_fila_original['nombre producto'], 'Viga de Acero')
-        self.assertEqual(primera_venta_importada.datos_fila_original['unidades'], 10)
+        self.assertEqual(
+            primera_venta_importada.datos_fila_original["nombre producto"],
+            "Viga de Acero",
+        )
+        self.assertEqual(primera_venta_importada.datos_fila_original["unidades"], 10)
         # Y que los campos del modelo VentaImportada sí usen los nombres canónicos y los valores limpios
-        self.assertEqual(primera_venta_importada.producto_nombre, 'Viga de Acero')
-        self.assertEqual(primera_venta_importada.cantidad, '10') # Es un CharField en el modelo
+        self.assertEqual(primera_venta_importada.producto_nombre, "Viga de Acero")
+        self.assertEqual(
+            primera_venta_importada.cantidad, "10"
+        )  # Es un CharField en el modelo
 
     def test_subida_con_cantidad_invalida(self):
         """
@@ -213,30 +294,49 @@ class UploadTests(APITestCase):
         """
         self.client.force_authenticate(user=self.gerente_user)
         data_rows = [
-            {'producto': 'Viga A', 'cliente': 'Cliente X', 'cantidad': 'texto no valido', 'precio_venta': 100.00},
-            {'producto': 'Viga B', 'cliente': 'Cliente Y', 'cantidad': 5, 'precio_venta': 200.00},
+            {
+                "producto": "Viga A",
+                "cliente": "Cliente X",
+                "cantidad": "texto no valido",
+                "precio_venta": 100.00,
+            },
+            {
+                "producto": "Viga B",
+                "cliente": "Cliente Y",
+                "cantidad": 5,
+                "precio_venta": 200.00,
+            },
         ]
         archivo_excel = self._crear_excel_en_memoria(data_rows=data_rows)
-        archivo_excel.name = 'test_invalid_qty.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel.name = "test_invalid_qty.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         # Esperamos 200 OK porque el archivo se procesa parcialmente
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Se crean 2 objetos VentaImportada: uno en conflicto, otro pendiente
         self.assertEqual(VentaImportada.objects.count(), 2)
         # Debe haber 1 fila con error en la respuesta
-        self.assertEqual(len(response.data['errores_filas']), 1)
-        self.assertIn('cantidad', response.data['errores_filas'][0]['errores'])
+        self.assertEqual(len(response.data["errores_filas"]), 1)
+        self.assertIn("cantidad", response.data["errores_filas"][0]["errores"])
 
         # Verificar el estado de los objetos creados
-        conflict_obj = VentaImportada.objects.get(estado=VentaImportada.Estados.CONFLICTO)
-        pending_obj = VentaImportada.objects.get(estado=VentaImportada.Estados.PENDIENTE)
+        conflict_obj = VentaImportada.objects.get(
+            estado=VentaImportada.Estados.CONFLICTO
+        )
+        pending_obj = VentaImportada.objects.get(
+            estado=VentaImportada.Estados.PENDIENTE
+        )
 
-        self.assertEqual(conflict_obj.datos_fila_original['cantidad'], 'texto no valido')
-        self.assertIn("No es un número ni una palabra numérica válida.", conflict_obj.detalles_conflicto['cantidad'])
-        self.assertEqual(pending_obj.cantidad, '5')
+        self.assertEqual(
+            conflict_obj.datos_fila_original["cantidad"], "texto no valido"
+        )
+        self.assertIn(
+            "No es un número ni una palabra numérica válida.",
+            conflict_obj.detalles_conflicto["cantidad"],
+        )
+        self.assertEqual(pending_obj.cantidad, "5")
 
     def test_subida_con_precio_invalido(self):
         """
@@ -244,26 +344,47 @@ class UploadTests(APITestCase):
         """
         self.client.force_authenticate(user=self.gerente_user)
         data_rows = [
-            {'producto': 'Producto C', 'cliente': 'Cliente Z', 'cantidad': 10, 'precio_venta': 'precio erroneo'},
-            {'producto': 'Producto D', 'cliente': 'Cliente W', 'cantidad': 20, 'precio_venta': '$50.50'},
+            {
+                "producto": "Producto C",
+                "cliente": "Cliente Z",
+                "cantidad": 10,
+                "precio_venta": "precio erroneo",
+            },
+            {
+                "producto": "Producto D",
+                "cliente": "Cliente W",
+                "cantidad": 20,
+                "precio_venta": "$50.50",
+            },
         ]
         archivo_excel = self._crear_excel_en_memoria(data_rows=data_rows)
-        archivo_excel.name = 'test_invalid_price.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel.name = "test_invalid_price.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(VentaImportada.objects.count(), 2)
-        self.assertEqual(len(response.data['errores_filas']), 1)
-        self.assertIn('precio_venta', response.data['errores_filas'][0]['errores'])
+        self.assertEqual(len(response.data["errores_filas"]), 1)
+        self.assertIn("precio_venta", response.data["errores_filas"][0]["errores"])
 
-        conflict_obj = VentaImportada.objects.get(estado=VentaImportada.Estados.CONFLICTO)
-        pending_obj = VentaImportada.objects.get(estado=VentaImportada.Estados.PENDIENTE)
+        conflict_obj = VentaImportada.objects.get(
+            estado=VentaImportada.Estados.CONFLICTO
+        )
+        pending_obj = VentaImportada.objects.get(
+            estado=VentaImportada.Estados.PENDIENTE
+        )
 
-        self.assertEqual(conflict_obj.datos_fila_original['precio_venta'], 'precio erroneo')
-        self.assertIn('El precio de venta no puede estar vacío.', conflict_obj.detalles_conflicto['precio_venta'])
-        self.assertEqual(pending_obj.precio_venta, '50.50') # Verificamos el valor limpio
+        self.assertEqual(
+            conflict_obj.datos_fila_original["precio_venta"], "precio erroneo"
+        )
+        self.assertIn(
+            "El precio de venta no puede estar vacío.",
+            conflict_obj.detalles_conflicto["precio_venta"],
+        )
+        self.assertEqual(
+            pending_obj.precio_venta, "50.50"
+        )  # Verificamos el valor limpio
 
     def test_subida_con_limpieza_exitosa_de_datos(self):
         """
@@ -271,20 +392,31 @@ class UploadTests(APITestCase):
         """
         self.client.force_authenticate(user=self.gerente_user)
         data_rows = [
-            {'producto': 'Producto E', 'cliente': 'Cliente P', 'cantidad': 'diez', 'precio_venta': '$1,234.56'},
+            {
+                "producto": "Producto E",
+                "cliente": "Cliente P",
+                "cantidad": "diez",
+                "precio_venta": "$1,234.56",
+            },
         ]
         archivo_excel = self._crear_excel_en_memoria(data_rows=data_rows)
-        archivo_excel.name = 'test_clean_data.xlsx'
-        url = '/api/ventas/upload/'
+        archivo_excel.name = "test_clean_data.xlsx"
+        url = "/api/ventas/upload/"
 
-        response = self.client.post(url, {'file': archivo_excel}, format='multipart')
+        response = self.client.post(url, {"file": archivo_excel}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(VentaImportada.objects.count(), 1)
-        
+
         venta_importada = VentaImportada.objects.first()
         self.assertEqual(venta_importada.estado, VentaImportada.Estados.PENDIENTE)
-        self.assertEqual(venta_importada.cantidad, '10') # Cantidad limpia
-        self.assertEqual(venta_importada.precio_venta, '1234.56') # Precio limpio y convertido a string
-        self.assertEqual(venta_importada.datos_fila_original['cantidad'], 'diez') # Original sin limpiar
-        self.assertEqual(venta_importada.datos_fila_original['precio_venta'], '$1,234.56') # Original sin limpiar
+        self.assertEqual(venta_importada.cantidad, "10")  # Cantidad limpia
+        self.assertEqual(
+            venta_importada.precio_venta, "1234.56"
+        )  # Precio limpio y convertido a string
+        self.assertEqual(
+            venta_importada.datos_fila_original["cantidad"], "diez"
+        )  # Original sin limpiar
+        self.assertEqual(
+            venta_importada.datos_fila_original["precio_venta"], "$1,234.56"
+        )  # Original sin limpiar

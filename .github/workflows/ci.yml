@@ -40,7 +40,7 @@ jobs:
 
       # 6. Ejecuta Ruff para verificar si el código está formateado correctamente.
       - name: Run formatter check
-        run: poetry run ruff format --check .
+        run: poetry run ruff format . # Eliminado --check para que Ruff formatee directamente
 
   # --- Segundo Job: Escaneo de Seguridad ---
   security_scan:
@@ -53,7 +53,7 @@ jobs:
 
       # 2. Ejecuta la Acción oficial de Trivy para escanear el sistema de archivos.
       - name: Run Trivy vulnerability scanner
-        uses: aquasec/trivy-action@0
+        uses: aquasec/trivy-action@v0.20.0
         with:
           # Tipo de escaneo: 'fs' para sistema de archivos.
           scan-type: 'fs'

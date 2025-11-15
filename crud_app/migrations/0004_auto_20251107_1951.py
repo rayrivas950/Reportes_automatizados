@@ -2,25 +2,26 @@
 
 from django.db import migrations
 
+
 def create_groups(apps, schema_editor):
-    Group = apps.get_model('auth', 'Group')
-    
+    Group = apps.get_model("auth", "Group")
+
     # Crear grupo 'Empleado'
-    Group.objects.get_or_create(name='Empleado')
-    
+    Group.objects.get_or_create(name="Empleado")
+
     # Crear grupo 'Gerente'
-    Group.objects.get_or_create(name='Gerente')
+    Group.objects.get_or_create(name="Gerente")
+
 
 def remove_groups(apps, schema_editor):
-    Group = apps.get_model('auth', 'Group')
-    Group.objects.filter(name='Empleado').delete()
-    Group.objects.filter(name='Gerente').delete()
+    Group = apps.get_model("auth", "Group")
+    Group.objects.filter(name="Empleado").delete()
+    Group.objects.filter(name="Gerente").delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('crud_app', '0003_alter_venta_cliente'),
+        ("crud_app", "0003_alter_venta_cliente"),
     ]
 
     operations = [

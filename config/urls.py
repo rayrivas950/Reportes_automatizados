@@ -19,21 +19,41 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
-    TokenBlacklistView, # Add this line
+    TokenBlacklistView,  # Add this line
 )
-from crud_app.views_auth import TokenObtainPairViewWithThrottle # Importar la vista personalizada
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from crud_app.views_auth import (
+    TokenObtainPairViewWithThrottle,
+)  # Importar la vista personalizada
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("crud_app.urls")),
-    path('api/token/', TokenObtainPairViewWithThrottle.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'), # Add this line
+    path(
+        "api/token/",
+        TokenObtainPairViewWithThrottle.as_view(),
+        name="token_obtain_pair",
+    ),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path(
+        "api/token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"
+    ),  # Add this line
     # Añadimos las URLs de autenticación de Django (incluye reseteo de contraseña)
-    path('api/auth/', include('django.contrib.auth.urls')),
+    path("api/auth/", include("django.contrib.auth.urls")),
     # URLs de drf-spectacular
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/schema/swagger-ui/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path(
+        "api/schema/redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
 ]

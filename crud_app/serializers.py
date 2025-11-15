@@ -13,70 +13,97 @@ class ProveedorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre', 'persona_contacto', 'email', 'telefono', 'pagina_web', 'total_comprado']
+        fields = [
+            "id",
+            "nombre",
+            "persona_contacto",
+            "email",
+            "telefono",
+            "pagina_web",
+            "total_comprado",
+        ]
 
     def get_total_comprado(self, obj):
-        total = obj.compras.aggregate(total=Sum('precio_compra_unitario'))['total']
+        total = obj.compras.aggregate(total=Sum("precio_compra_unitario"))["total"]
         return total or 0
+
 
 class ClienteSerializer(serializers.ModelSerializer):
     total_gastado = serializers.SerializerMethodField()
 
     class Meta:
         model = Cliente
-        fields = ['id', 'nombre', 'email', 'telefono', 'pagina_web', 'total_gastado', 'created_at']
+        fields = [
+            "id",
+            "nombre",
+            "email",
+            "telefono",
+            "pagina_web",
+            "total_gastado",
+            "created_at",
+        ]
 
     def get_total_gastado(self, obj):
-        total = obj.ventas.aggregate(total=Sum('total_venta'))['total']
+        total = obj.ventas.aggregate(total=Sum("total_venta"))["total"]
         return total or 0
+
 
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = '__all__'
+        fields = "__all__"
+
 
 class CompraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Compra
-        fields = '__all__'
+        fields = "__all__"
+
 
 class VentaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Venta
-        fields = '__all__'
+        fields = "__all__"
+
 
 # --- Serializador para Registro de Usuarios ---
+
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """
     Serializador para el registro de nuevos usuarios.
     Valida que las contraseñas coincidan y crea un usuario en el grupo 'Pendiente'.
     """
-    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True, label="Confirmar Contraseña")
+
+    password2 = serializers.CharField(
+        style={"input_type": "password"}, write_only=True, label="Confirmar Contraseña"
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2']
+        fields = ["username", "email", "password", "password2"]
         extra_kwargs = {
-            'password': {'write_only': True, 'style': {'input_type': 'password'}},
-            'email': {'required': True}
+            "password": {"write_only": True, "style": {"input_type": "password"}},
+            "email": {"required": True},
         }
 
     def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError({"password": "Las contraseñas no coinciden."})
+        if data["password"] != data["password2"]:
+            raise serializers.ValidationError(
+                {"password": "Las contraseñas no coinciden."}
+            )
         return data
 
     @transaction.atomic
     def create(self, validated_data):
-        validated_data.pop('password2')
+        validated_data.pop("password2")
         user = User.objects.create_user(**validated_data)
-        
+
         # Asignar al grupo 'Pendiente' en lugar de 'Empleado'
         try:
-            pendiente_group, created = Group.objects.get_or_create(name='Pendiente')
+            pendiente_group, created = Group.objects.get_or_create(name="Pendiente")
             user.groups.add(pendiente_group)
         except Exception:
-            pass # La transacción se encargará de revertir si hay un error grave.
-            
+            pass  # La transacción se encargará de revertir si hay un error grave.
+
         return user

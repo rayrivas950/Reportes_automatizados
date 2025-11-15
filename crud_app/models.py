@@ -2,215 +2,322 @@ from django.db import models
 from django.conf import settings
 from simple_history.models import HistoricalRecords
 
+
 # Manager para Soft Delete
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
+
 class Proveedor(models.Model):
-    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Proveedor")
-    persona_contacto = models.CharField(max_length=100, blank=True, null=True, verbose_name="Persona de Contacto")
-    email = models.EmailField(max_length=254, blank=True, null=True, verbose_name="Correo Electrónico")
-    telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono")
+    nombre = models.CharField(
+        max_length=100, unique=True, verbose_name="Nombre del Proveedor"
+    )
+    persona_contacto = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name="Persona de Contacto"
+    )
+    email = models.EmailField(
+        max_length=254, blank=True, null=True, verbose_name="Correo Electrónico"
+    )
+    telefono = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Teléfono"
+    )
     pagina_web = models.URLField(blank=True, null=True, verbose_name="Página Web")
-    
+
     # Campos de auditoría
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
-    deleted_at = models.DateTimeField(null=True, blank=True, default=None, verbose_name="Fecha de Eliminación")
+    created_at = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Creación"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="Última Actualización"
+    )
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, default=None, verbose_name="Fecha de Eliminación"
+    )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='proveedores_creados', 
-        verbose_name="Creado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="proveedores_creados",
+        verbose_name="Creado por",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='proveedores_actualizados', 
-        verbose_name="Actualizado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="proveedores_actualizados",
+        verbose_name="Actualizado por",
     )
 
     history = HistoricalRecords()
 
     # Managers
     objects = SoftDeleteManager()  # Manager por defecto, excluye los "borrados".
-    all_objects = models.Manager() # Manager que incluye todo, para vistas de admin o recuperación.
+    all_objects = (
+        models.Manager()
+    )  # Manager que incluye todo, para vistas de admin o recuperación.
 
     class Meta:
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores"
-        ordering = ['nombre']
+        ordering = ["nombre"]
 
     def __str__(self):
         return self.nombre
 
+
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100, verbose_name="Nombre del Cliente")
-    email = models.EmailField(max_length=254, unique=True, blank=True, null=True, verbose_name="Correo Electrónico")
-    telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono")
+    email = models.EmailField(
+        max_length=254,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Correo Electrónico",
+    )
+    telefono = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Teléfono"
+    )
     pagina_web = models.URLField(blank=True, null=True, verbose_name="Página Web")
-    
+
     # Campos de auditoría
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
-    deleted_at = models.DateTimeField(null=True, blank=True, default=None, verbose_name="Fecha de Eliminación")
+    created_at = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Creación"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="Última Actualización"
+    )
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, default=None, verbose_name="Fecha de Eliminación"
+    )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='clientes_creados', 
-        verbose_name="Creado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clientes_creados",
+        verbose_name="Creado por",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='clientes_actualizados', 
-        verbose_name="Actualizado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clientes_actualizados",
+        verbose_name="Actualizado por",
     )
 
     history = HistoricalRecords()
 
     # Managers
     objects = SoftDeleteManager()  # Manager por defecto, excluye los "borrados".
-    all_objects = models.Manager() # Manager que incluye todo, para vistas de admin o recuperación.
+    all_objects = (
+        models.Manager()
+    )  # Manager que incluye todo, para vistas de admin o recuperación.
 
     class Meta:
         verbose_name = "Cliente"
         verbose_name_plural = "Clientes"
-        ordering = ['nombre']
+        ordering = ["nombre"]
 
     def __str__(self):
         return self.nombre
 
+
 class Producto(models.Model):
-    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Producto")
+    nombre = models.CharField(
+        max_length=100, unique=True, verbose_name="Nombre del Producto"
+    )
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True, related_name='productos', verbose_name="Proveedor")
+    proveedor = models.ForeignKey(
+        Proveedor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="productos",
+        verbose_name="Proveedor",
+    )
     stock = models.PositiveIntegerField(default=0, verbose_name="Cantidad en Stock")
-    precio_compra_actual = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Último Precio de Compra")
-    
+    precio_compra_actual = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Último Precio de Compra",
+    )
+
     # Campos de auditoría
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
-    deleted_at = models.DateTimeField(null=True, blank=True, default=None, verbose_name="Fecha de Eliminación")
+    created_at = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Creación"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="Última Actualización"
+    )
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, default=None, verbose_name="Fecha de Eliminación"
+    )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='productos_creados', 
-        verbose_name="Creado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="productos_creados",
+        verbose_name="Creado por",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='productos_actualizados', 
-        verbose_name="Actualizado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="productos_actualizados",
+        verbose_name="Actualizado por",
     )
 
     history = HistoricalRecords()
 
     # Managers
     objects = SoftDeleteManager()  # Manager por defecto, excluye los "borrados".
-    all_objects = models.Manager() # Manager que incluye todo, para vistas de admin o recuperación.
+    all_objects = (
+        models.Manager()
+    )  # Manager que incluye todo, para vistas de admin o recuperación.
 
     class Meta:
         verbose_name = "Producto"
         verbose_name_plural = "Productos"
-        ordering = ['nombre']
+        ordering = ["nombre"]
 
     def __str__(self):
         return self.nombre
 
+
 class Compra(models.Model):
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='compras', verbose_name="Producto")
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True, related_name='compras', verbose_name="Proveedor")
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.CASCADE,
+        related_name="compras",
+        verbose_name="Producto",
+    )
+    proveedor = models.ForeignKey(
+        Proveedor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="compras",
+        verbose_name="Proveedor",
+    )
     cantidad = models.PositiveIntegerField(verbose_name="Cantidad Comprada")
-    precio_compra_unitario = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio de Compra Unitario")
-    
+    precio_compra_unitario = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="Precio de Compra Unitario"
+    )
+
     # Campos de auditoría
-    fecha_compra = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Compra")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
-    deleted_at = models.DateTimeField(null=True, blank=True, default=None, verbose_name="Fecha de Eliminación")
+    fecha_compra = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Compra"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="Última Actualización"
+    )
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, default=None, verbose_name="Fecha de Eliminación"
+    )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='compras_creadas', 
-        verbose_name="Creado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="compras_creadas",
+        verbose_name="Creado por",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='compras_actualizadas', 
-        verbose_name="Actualizado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="compras_actualizadas",
+        verbose_name="Actualizado por",
     )
 
     history = HistoricalRecords()
 
     # Managers
     objects = SoftDeleteManager()  # Manager por defecto, excluye los "borrados".
-    all_objects = models.Manager() # Manager que incluye todo, para vistas de admin o recuperación.
+    all_objects = (
+        models.Manager()
+    )  # Manager que incluye todo, para vistas de admin o recuperación.
 
     class Meta:
         verbose_name = "Compra"
         verbose_name_plural = "Compras"
-        ordering = ['-fecha_compra']
+        ordering = ["-fecha_compra"]
 
     def __str__(self):
         return f"Compra de {self.cantidad} x {self.producto.nombre} el {self.fecha_compra.strftime('%Y-%m-%d')}"
 
+
 class Venta(models.Model):
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='ventas', verbose_name="Producto")
-    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name='ventas', verbose_name="Cliente")
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.CASCADE,
+        related_name="ventas",
+        verbose_name="Producto",
+    )
+    cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ventas",
+        verbose_name="Cliente",
+    )
     cantidad = models.PositiveIntegerField(verbose_name="Cantidad Vendida")
-    precio_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio de Venta (Unitario)")
-    total_venta = models.DecimalField(max_digits=10, decimal_places=2, editable=False, verbose_name="Total de la Venta")
+    precio_venta = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="Precio de Venta (Unitario)"
+    )
+    total_venta = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        editable=False,
+        verbose_name="Total de la Venta",
+    )
 
     # Campos de auditoría
     fecha_venta = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Venta")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Actualización")
-    deleted_at = models.DateTimeField(null=True, blank=True, default=None, verbose_name="Fecha de Eliminación")
+    updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="Última Actualización"
+    )
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, default=None, verbose_name="Fecha de Eliminación"
+    )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='ventas_creadas', 
-        verbose_name="Creado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ventas_creadas",
+        verbose_name="Creado por",
     )
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='ventas_actualizadas', 
-        verbose_name="Actualizado por"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ventas_actualizadas",
+        verbose_name="Actualizado por",
     )
 
     history = HistoricalRecords()
 
     # Managers
     objects = SoftDeleteManager()  # Manager por defecto, excluye los "borrados".
-    all_objects = models.Manager() # Manager que incluye todo, para vistas de admin o recuperación.
+    all_objects = (
+        models.Manager()
+    )  # Manager que incluye todo, para vistas de admin o recuperación.
 
     class Meta:
         verbose_name = "Venta"
         verbose_name_plural = "Ventas"
-        ordering = ['-fecha_venta']
+        ordering = ["-fecha_venta"]
 
     def __str__(self):
         return f"Venta de {self.cantidad} x {self.producto.nombre} el {self.fecha_venta.strftime('%Y-%m-%d')}"
@@ -218,71 +325,75 @@ class Venta(models.Model):
     def save(self, *args, **kwargs):
         # Actualizar el total de la venta. No tocamos el stock aquí.
         from decimal import Decimal
+
         self.total_venta = self.cantidad * Decimal(self.precio_venta)
         super().save(*args, **kwargs)
 
 
 # --- Modelos para Staging de Importaciones ---
 
+
 class TransaccionImportadaBase(models.Model):
     """
     Un modelo base abstracto para manejar transacciones importadas desde archivos,
     antes de que se conviertan en registros de Venta o Compra definitivos.
     """
+
     class Estados(models.TextChoices):
-        PENDIENTE = 'PENDIENTE', 'Pendiente de Revisión'
-        CONFLICTO = 'CONFLICTO', 'Conflicto Detectado'
-        PROCESADO = 'PROCESADO', 'Procesado y Confirmado'
-        IGNORADO = 'IGNORADO', 'Ignorado Manualmente'
+        PENDIENTE = "PENDIENTE", "Pendiente de Revisión"
+        CONFLICTO = "CONFLICTO", "Conflicto Detectado"
+        PROCESADO = "PROCESADO", "Procesado y Confirmado"
+        IGNORADO = "IGNORADO", "Ignorado Manualmente"
 
     estado = models.CharField(
         max_length=10,
         choices=Estados.choices,
         default=Estados.PENDIENTE,
-        verbose_name="Estado de la Importación"
+        verbose_name="Estado de la Importación",
     )
     datos_fila_original = models.JSONField(
         verbose_name="Datos Originales de la Fila del Excel"
     )
     detalles_conflicto = models.JSONField(
-        null=True, 
-        blank=True, 
-        verbose_name="Detalles del Conflicto Detectado"
+        null=True, blank=True, verbose_name="Detalles del Conflicto Detectado"
     )
-    
+
     # Campos de auditoría para la importación
     importado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='+', # El '+' evita crear una relación inversa innecesaria
-        verbose_name="Importado por"
+        related_name="+",  # El '+' evita crear una relación inversa innecesaria
+        verbose_name="Importado por",
     )
     fecha_importacion = models.DateTimeField(
-        auto_now_add=True, 
-        verbose_name="Fecha de Importación"
+        auto_now_add=True, verbose_name="Fecha de Importación"
     )
     fecha_resolucion = models.DateTimeField(
-        null=True, 
-        blank=True, 
-        verbose_name="Fecha de Resolución"
+        null=True, blank=True, verbose_name="Fecha de Resolución"
     )
 
     class Meta:
-        abstract = True # Esto lo convierte en un modelo base abstracto.
-        ordering = ['-fecha_importacion']
+        abstract = True  # Esto lo convierte en un modelo base abstracto.
+        ordering = ["-fecha_importacion"]
 
 
 class VentaImportada(TransaccionImportadaBase):
     # Campos específicos de una venta, pueden ser nulos porque los datos pueden venir incompletos.
     producto_nombre = models.CharField(max_length=255, null=True, blank=True)
     cliente_nombre = models.CharField(max_length=255, null=True, blank=True)
-    cantidad = models.CharField(max_length=50, null=True, blank=True) # Como texto para capturar datos sucios
-    precio_venta = models.CharField(max_length=50, null=True, blank=True) # Como texto
+    cantidad = models.CharField(
+        max_length=50, null=True, blank=True
+    )  # Como texto para capturar datos sucios
+    precio_venta = models.CharField(max_length=50, null=True, blank=True)  # Como texto
 
     # Relaciones que se llenarán después de la validación
-    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True)
+    producto = models.ForeignKey(
+        Producto, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         verbose_name = "Venta Importada"
@@ -297,8 +408,12 @@ class CompraImportada(TransaccionImportadaBase):
     precio_compra_unitario = models.CharField(max_length=50, null=True, blank=True)
 
     # Relaciones que se llenarán después de la validación
-    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
+    producto = models.ForeignKey(
+        Producto, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    proveedor = models.ForeignKey(
+        Proveedor, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         verbose_name = "Compra Importada"
