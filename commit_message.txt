@@ -1,7 +1,5 @@
-fix(ci): Corregir errores de linting y cambiar a Trivy en Docker
+fix(lint): Reintroducir importación de ScopedRateThrottle en tests.py
 
-Se solucionan dos problemas persistentes en el pipeline de CI:
+Se corrige el error F821 "Undefined name `ScopedRateThrottle`" en `crud_app/tests.py` reintroduciendo la importación de `ScopedRateThrottle` en la parte superior del archivo. Esta importación es necesaria para las pruebas de rate limiting.
 
-1.  **Error de Linting (E402/F811):** Se elimina una importación duplicada de `timedelta` en `config/settings.py` y una importación mal ubicada de `ScopedRateThrottle` en `crud_app/tests.py`. Esto resuelve definitivamente los fallos del job `lint`.
-
-2.  **Error en Security Scan:** Se reemplaza el uso de la acción `aquasec/trivy-action`, que fallaba al no poder ser resuelta, por una ejecución directa de Trivy dentro de un contenedor Docker. Este método es más robusto y soluciona el fallo del job `security_scan`.
+Este commit debería resolver el último fallo de linting en el pipeline de CI.
