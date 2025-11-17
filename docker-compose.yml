@@ -19,7 +19,7 @@ services:
     # Esto es opcional, pero te permite conectar un cliente de base de datos
     # desde tu máquina al contenedor para inspeccionar los datos.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     # Define una política de reinicio. 'unless-stopped' reiniciará el contenedor
     # automáticamente a menos que lo detengas manualmente.
     restart: unless-stopped

@@ -19,7 +19,7 @@ RUN addgroup --system django_group && adduser --system --ingroup django_group dj
 
 # --- Instalación de Dependencias ---
 # Instalamos poetry, nuestro gestor de dependencias.
-RUN pip install poetry
+RUN pip install "poetry==1.8.2"
 
 # Copiamos solo los archivos de dependencias primero. Docker es inteligente: si estos
 # archivos no cambian, usará la caché para el siguiente paso, ahorrando mucho tiempo.
@@ -28,9 +28,9 @@ COPY poetry.lock pyproject.toml ./
 # Configuramos poetry para que instale las dependencias en el entorno global del contenedor,
 # no en un venv, ya que el contenedor en sí es nuestro entorno aislado.
 # '--no-root' evita instalar el proyecto en sí (lo copiaremos después).
-# '--no-dev' excluye las dependencias de desarrollo (como ruff) para mantener la imagen ligera.
+# '--with dev' incluye las dependencias de desarrollo (como pytest).
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-root --no-dev
+    poetry install --no-root --with dev
 
 # --- Copia del Código Fuente ---
 # Ahora que las dependencias están instaladas, copiamos el resto del código de nuestra aplicación.

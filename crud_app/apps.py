@@ -6,4 +6,4 @@ class CrudAppConfig(AppConfig):
     name = "crud_app"
 
     def ready(self):
-        pass
+        import crud_app.signals
