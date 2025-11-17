@@ -8,8 +8,8 @@ from word2number_es import w2n  # Usamos la nueva librería para español
 class VentaImportadaSerializer(serializers.Serializer):
     producto = serializers.CharField(max_length=255)
     cliente = serializers.CharField(max_length=255)
-    cantidad = serializers.CharField(max_length=50)
-    precio_venta = serializers.CharField(max_length=50)
+    cantidad = serializers.CharField(max_length=50, allow_blank=True)
+    precio_venta = serializers.CharField(max_length=50, allow_blank=True)
 
     def validate_cantidad(self, value):
         value_str = str(value).strip()
@@ -51,8 +51,8 @@ class VentaImportadaSerializer(serializers.Serializer):
 class CompraImportadaSerializer(serializers.Serializer):
     producto = serializers.CharField(max_length=255)
     proveedor = serializers.CharField(max_length=255)
-    cantidad = serializers.CharField(max_length=50)
-    precio_compra_unitario = serializers.CharField(max_length=50)
+    cantidad = serializers.CharField(max_length=50, allow_blank=True)
+    precio_compra_unitario = serializers.CharField(max_length=50, allow_blank=True)
 
     def validate_cantidad(self, value):
         value_str = str(value).strip()

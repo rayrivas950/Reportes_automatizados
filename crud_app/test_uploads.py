@@ -5,8 +5,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
+from rest_framework import serializers # Added this import
+from decimal import Decimal # Added this import
 
 from .models import VentaImportada
+from .serializers_uploads import VentaImportadaSerializer, CompraImportadaSerializer
+from word2number_es import w2n
 
 User = get_user_model()
 
@@ -420,3 +424,68 @@ class UploadTests(APITestCase):
         self.assertEqual(
             venta_importada.datos_fila_original["precio_venta"], "$1,234.56"
         )  # Original sin limpiar
+
+
+class SerializerUploadsTests(APITestCase):
+    """
+    Pruebas unitarias para los serializadores VentaImportadaSerializer y CompraImportadaSerializer.
+    """
+
+    def test_venta_cantidad_vacia_falla(self):
+        serializer = VentaImportadaSerializer(data={'producto': 'test', 'cliente': 'test', 'cantidad': '', 'precio_venta': '10.00'})
+        with self.assertRaisesMessage(serializers.ValidationError, "La cantidad no puede estar vacía."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_venta_cantidad_palabra_invalida_falla(self):
+        serializer = VentaImportadaSerializer(data={'producto': 'test', 'cliente': 'test', 'cantidad': 'palabrainvalida', 'precio_venta': '10.00'})
+        with self.assertRaisesMessage(serializers.ValidationError, "No es un número ni una palabra numérica válida."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_venta_precio_venta_vacio_falla(self):
+        serializer = VentaImportadaSerializer(data={'producto': 'test', 'cliente': 'test', 'cantidad': '10', 'precio_venta': ''})
+        with self.assertRaisesMessage(serializers.ValidationError, "El precio de venta no puede estar vacío."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_venta_precio_venta_no_numerico_falla(self):
+        serializer = VentaImportadaSerializer(data={'producto': 'test', 'cliente': 'test', 'cantidad': '10', 'precio_venta': '.'})
+        with self.assertRaisesMessage(serializers.ValidationError, "El precio de venta debe ser un número válido."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_compra_cantidad_vacia_falla(self):
+        serializer = CompraImportadaSerializer(data={'producto': 'test', 'proveedor': 'test', 'cantidad': '', 'precio_compra_unitario': '10.00'})
+        with self.assertRaisesMessage(serializers.ValidationError, "La cantidad no puede estar vacía."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_compra_cantidad_palabra_invalida_falla(self):
+        serializer = CompraImportadaSerializer(data={'producto': 'test', 'proveedor': 'test', 'cantidad': 'palabrainvalida', 'precio_compra_unitario': '10.00'})
+        with self.assertRaisesMessage(serializers.ValidationError, "No es un número ni una palabra numérica válida."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_compra_precio_compra_unitario_vacio_falla(self):
+        serializer = CompraImportadaSerializer(data={'producto': 'test', 'proveedor': 'test', 'cantidad': '10', 'precio_compra_unitario': ''})
+        with self.assertRaisesMessage(serializers.ValidationError, "El precio de compra no puede estar vacío."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_compra_precio_compra_unitario_no_numerico_falla(self):
+        serializer = CompraImportadaSerializer(data={'producto': 'test', 'proveedor': 'test', 'cantidad': '10', 'precio_compra_unitario': '.'})
+        with self.assertRaisesMessage(serializers.ValidationError, "El precio de compra unitario debe ser un número válido."):
+            serializer.is_valid(raise_exception=True)
+
+    def test_compra_serializer_validate_method_covered(self):
+        # Este test simplemente asegura que el método validate() del serializador se ejecuta.
+        # Como no tiene lógica compleja, solo necesitamos que se llame.
+        valid_data = {
+            'producto': 'Producto Test',
+            'proveedor': 'Proveedor Test',
+            'cantidad': '10', # Input as string
+            'precio_compra_unitario': '100.00' # Input as string
+        }
+        serializer = CompraImportadaSerializer(data=valid_data)
+        self.assertTrue(serializer.is_valid(raise_exception=True))
+        self.assertEqual(serializer.validated_data, {
+            'producto': 'Producto Test',
+            'proveedor': 'Proveedor Test',
+            'cantidad': 10, # Expected validated type is int
+            'precio_compra_unitario': Decimal('100.00') # Expected validated type is Decimal
+        })
+
