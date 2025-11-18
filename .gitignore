@@ -9,12 +9,14 @@ __pycache__/
 .venv
 env/
 venv/
+.local/
 
 # Django stuff:
 *.log
 *.sqlite3
 db.sqlite3
 /logs/
+.coverage
 
 # Media files
 media/
@@ -28,7 +30,6 @@ static/
 
 # Poetry
 .poetry/
-poetry.lock # Usually committed, but user has it in root, so including for now
 
 # Session summary
 resumen_sesion_2025-11-06.txt

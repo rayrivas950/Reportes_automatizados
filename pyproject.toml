@@ -23,6 +23,7 @@ pandas = ">=2.3.3,<3.0.0"
 word2number-es = ">=1.0.1,<2.0.0"
 gunicorn = ">=22.0.0,<23.0.0"
 dj-database-url = ">=2.1.0,<3.0.0"
+django-cors-headers = "^4.9.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=25.9.0,<26.0.0"

@@ -27,7 +27,11 @@ services:
   # --- Servicio de la API (nuestra app Django) ---
   api:
     # Construye la imagen usando el Dockerfile en el directorio actual ('.').
-    build: .
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     # Sobrescribe el comando por defecto del Dockerfile.
     # Para desarrollo, usamos el servidor de Django 'runserver' porque permite
     # el hot-reloading (recarga automática al cambiar el código).

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",  # Requerido para la blacklist de tokens
     "simple_history",  # Añadido para el historial de cambios
     "drf_spectacular",  # Añadido para la documentación OpenAPI/Swagger
+    "corsheaders",      # Añadido para la gestión de CORS
     # Nuestras apps
     "crud_app",
 ]
@@ -112,12 +113,21 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",  # Añadido para el historial
+]
+
+# Configuración de CORS
+# Se definen los orígenes permitidos para las peticiones.
+# Esto es crucial para que el frontend (Angular) pueda comunicarse con la API.
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",  # Origen para el desarrollo de Angular
+    "http://127.0.0.1:4200", # Origen alternativo para el desarrollo de Angular
 ]
 
 

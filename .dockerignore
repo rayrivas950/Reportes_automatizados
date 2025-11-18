@@ -13,6 +13,7 @@ venv/
 env/
 *.pyc
 __pycache__/
+.cache/
 
 # Archivos de configuración sensibles
 .env*

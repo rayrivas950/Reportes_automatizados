@@ -11,9 +11,7 @@ class VentaImportadaReconSerializer(serializers.ModelSerializer):
     class Meta:
         model = VentaImportada
         fields = "__all__"
-        read_only_fields = (
-            "__all__"  # Estos datos son de solo lectura para la UI de conciliación
-        )
+        read_only_fields = []  # Corregido: debe ser una lista o tupla de nombres de campos
 
 
 class CompraImportadaReconSerializer(serializers.ModelSerializer):
@@ -25,6 +23,4 @@ class CompraImportadaReconSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompraImportada
         fields = "__all__"
-        read_only_fields = (
-            "__all__"  # Estos datos son de solo lectura para la UI de conciliación
-        )
+        read_only_fields = []  # Corregido: debe ser una lista o tupla de nombres de campos

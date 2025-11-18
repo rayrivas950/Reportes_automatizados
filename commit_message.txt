@@ -1,5 +1,0 @@
-fix(lint): Reintroducir importación de ScopedRateThrottle en tests.py
-
-Se corrige el error F821 "Undefined name `ScopedRateThrottle`" en `crud_app/tests.py` reintroduciendo la importación de `ScopedRateThrottle` en la parte superior del archivo. Esta importación es necesaria para las pruebas de rate limiting.
-
-Este commit debería resolver el último fallo de linting en el pipeline de CI.

@@ -2,6 +2,11 @@
 # Usamos una imagen oficial de Python. 'slim' es una versión ligera que tiene lo esencial.
 FROM python:3.12-slim as base
 
+# --- Argumentos de Build ---
+# Argumentos para pasar el UID y GID del usuario del host, para evitar problemas de permisos.
+ARG UID=1000
+ARG GID=1000
+
 # --- Variables de Entorno ---
 # Previene que Python genere archivos .pyc, que no necesitamos en un contenedor.
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -13,9 +18,10 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # --- Creación de Usuario No-Root ---
-# Creamos un grupo de sistema y un usuario de sistema con privilegios limitados.
-# Esto es crucial para la seguridad.
-RUN addgroup --system django_group && adduser --system --ingroup django_group django_user
+# Creamos un grupo y un usuario con el UID/GID del host para que los permisos de los archivos coincidan.
+# Esto es crucial para el desarrollo con volúmenes montados.
+RUN groupadd --gid $GID django_group && \
+    useradd --uid $UID --gid $GID --create-home django_user
 
 # --- Instalación de Dependencias ---
 # Instalamos poetry, nuestro gestor de dependencias.
