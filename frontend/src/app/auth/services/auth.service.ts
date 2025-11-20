@@ -19,6 +19,14 @@ export class AuthService {
     );
   }
 
+  register(userData: any): Observable<any> {
+    return this.http.post(`${this.API_URL}/auth/registro/`, userData);
+  }
+
+  requestPasswordReset(email: string): Observable<any> {
+    return this.http.post(`${this.API_URL}/auth/password_reset/`, { email });
+  }
+
   logout(): void {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
