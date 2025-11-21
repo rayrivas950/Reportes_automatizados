@@ -1,0 +1,126 @@
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+  overflow: hidden; // Hide the other forms
+  font-family: 'Roboto', sans-serif; // Using a common, modern font
+}
+
+.auth-page-container {
+  width: 100%;
+  max-width: 400px; 
+  perspective: 1000px; // For potential 3D effects
+  // Ensure the container itself has a subtle shadow for overall depth
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); // Enhanced shadow
+  border-radius: 12px;
+  overflow: hidden; // Crucial for the swipe effect to clip correctly
+  background-color: white; // Explicitly set background
+}
+
+.forms-wrapper {
+  display: flex;
+  width: 300%; // To accommodate three forms
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55); // A more dynamic transition
+  height: 100%;
+}
+
+.form-card {
+  width: calc(100% / 3);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex; // To center content vertically within the card space if needed
+  justify-content: center;
+  align-items: flex-start; // Align forms to the top within their card
+}
+
+// --- Slide Logic ---
+.view-login .forms-wrapper {
+  transform: translateX(0);
+}
+.view-register .forms-wrapper {
+  transform: translateX(-33.333%);
+}
+.view-recover .forms-wrapper {
+  transform: translateX(-66.666%);
+}
+
+
+// --- Common Card Styles (merged from other components) ---
+mat-card {
+  width: 100%;
+  padding: 24px; // Consistent padding inside the card
+  box-shadow: none; // Remove default mat-card shadow, as it's on the container
+  border-radius: 0; // Remove default mat-card border-radius, as it's on the container
+  background: white; // Ensure background is white
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box; // Ensure padding doesn't affect width calculations
+}
+
+mat-card-header {
+  justify-content: center;
+  margin-bottom: 20px;
+  padding: 0; // Remove default padding
+}
+
+mat-card-title {
+  font-size: 1.8em; // Larger title for better readability
+  font-weight: 500;
+  color: #3f51b5; // Material Design primary color
+}
+
+mat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; // Space between form fields
+}
+
+mat-form-field {
+  width: 100%;
+  // margin-bottom: 15px; // Replaced by gap in mat-card-content
+}
+
+button[mat-raised-button] {
+  width: 100%;
+  padding: 10px 0;
+  margin-top: 20px; // Space above the button
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.error-message {
+  color: #f44336; // Material Design red
+  text-align: center;
+  margin-top: 15px;
+  min-height: 20px; // Ensure consistent spacing even if no error
+  font-size: 0.9em;
+}
+
+.success-message {
+  color: #4caf50; // Material Design green
+  text-align: center;
+  margin-top: 15px;
+  min-height: 20px;
+  font-size: 0.9em;
+}
+
+mat-card-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 0 0 0; // Remove default padding
+  
+  a {
+    cursor: pointer;
+    color: #3f51b5; // Material Design primary color
+    text-decoration: none;
+    font-weight: 500;
+    
+    &:hover {
+      color: #303f9f; // Darker shade on hover
+      text-decoration: underline;
+    }
+  }
+}

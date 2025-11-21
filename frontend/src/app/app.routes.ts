@@ -1,22 +1,16 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './auth/components/login/login.component';
-import { RegistrationComponent } from './auth/components/registration/registration.component';
-import { PasswordRecoveryComponent } from './auth/components/password-recovery/password-recovery.component';
 // Importamos nuestro guardián de rutas.
 import { authGuard } from './auth/guards/auth.guard';
 
 export const routes: Routes = [
-  // Redirección principal hacia la página de login.
-  { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
+  // Redirección principal hacia la nueva página de autenticación unificada.
+  { path: '', redirectTo: '/auth', pathMatch: 'full' },
 
-  // Agrupamos las rutas de autenticación bajo el path 'auth'.
+  // La ruta 'auth' ahora carga de forma perezosa (lazy-loading) el módulo de autenticación.
+  // Este módulo contiene el nuevo componente unificado con la animación de swipe.
   {
     path: 'auth',
-    children: [
-      { path: 'login', component: LoginComponent },
-      { path: 'registro', component: RegistrationComponent },
-      { path: 'recuperar-clave', component: PasswordRecoveryComponent },
-    ]
+    loadChildren: () => import('./auth/pages/auth/auth.routes').then(m => m.AUTH_ROUTES)
   },
 
   // La ruta del dashboard ahora está protegida por el authGuard.
@@ -27,6 +21,6 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
-  // Ruta comodín para redirigir a login si la URL no coincide con ninguna.
-  { path: '**', redirectTo: '/auth/login' }
+  // Ruta comodín para redirigir a la página de autenticación si la URL no coincide.
+  { path: '**', redirectTo: '/auth' }
 ];
