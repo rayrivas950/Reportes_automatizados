@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../services/auth.service';
-import { animate } from 'animejs';
+import * as anime from 'animejs';
 
 @Component({
   selector: 'app-registration',
@@ -47,7 +47,7 @@ export class RegistrationComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    (animate as any)({
+    (anime as any).default({
       targets: this.registrationCard.nativeElement,
       opacity: [0, 1],
       translateY: [50, 0],
@@ -72,10 +72,10 @@ export class RegistrationComponent implements OnInit, AfterViewInit {
     this.errorMessage = null;
     this.successMessage = null;
     if (this.registrationForm.valid) {
-      const { username, email, password } = this.registrationForm.value;
-      this.authService.register({ username, email, password }).subscribe({
+      // Enviamos todos los datos del formulario, incluyendo password2
+      this.authService.register(this.registrationForm.value).subscribe({
         next: () => {
-          this.successMessage = 'Registro exitoso. Revisa tu correo para activar tu cuenta.';
+          this.successMessage = 'Registro exitoso. Serás redirigido al login.';
           // Optionally redirect to login after a delay
           setTimeout(() => {
             this.router.navigate(['/login']);
@@ -94,7 +94,7 @@ export class RegistrationComponent implements OnInit, AfterViewInit {
   }
 
   triggerErrorAnimation(): void {
-    (animate as any)({
+    (anime as any).default({
       targets: this.registrationCard.nativeElement,
       translateX: [
         { value: -10, duration: 50, easing: 'easeOutQuad' },

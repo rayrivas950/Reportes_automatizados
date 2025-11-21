@@ -97,7 +97,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         validated_data.pop("password2")
+        # Creamos el usuario pero sin guardarlo en la DB todavía si usamos create()
+        # create_user lo guarda directamente, así que lo modificamos después.
         user = User.objects.create_user(**validated_data)
+        user.is_active = False  # El usuario no estará activo hasta que se verifique
+        user.save()
 
         # Asignar al grupo 'Pendiente' en lugar de 'Empleado'
         try:

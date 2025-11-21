@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../services/auth.service';
-import { animate } from 'animejs';
+import * as anime from 'animejs';
 
 @Component({
   selector: 'app-login',
@@ -34,7 +34,7 @@ export class LoginComponent implements AfterViewInit {
   constructor(private authService: AuthService, private router: Router) {}
 
   ngAfterViewInit(): void {
-    (animate as any)({
+    (anime as any).default({
       targets: this.loginCard.nativeElement,
       opacity: [0, 1],
       translateY: [50, 0],
@@ -50,15 +50,25 @@ export class LoginComponent implements AfterViewInit {
         this.router.navigate(['/dashboard']);
       },
       error: (err: any) => {
-        this.errorMessage = 'Error al iniciar sesión. Verifica tus credenciales.';
-        console.error('Login error:', err);
+        // Log del error completo para depuración.
+        console.error('Login error details:', JSON.stringify(err, null, 2));
+
+        // Verificamos si el error es una respuesta HTTP con el status 403
+        // y si el cuerpo del error contiene nuestro código específico.
+        if (err.status === 403 && err.error?.code === 'pending_approval') {
+          this.errorMessage = 'Tu cuenta está pendiente de aprobación. Por favor, contacta a un administrador.';
+        } else {
+          // Para cualquier otro tipo de error (ej. 401 Unauthorized, 500, etc.).
+          this.errorMessage = 'Error al iniciar sesión. Verifica tus credenciales.';
+        }
+        
         this.triggerErrorAnimation();
       },
     });
   }
 
   triggerErrorAnimation(): void {
-    (animate as any)({
+    (anime as any).default({
       targets: this.loginCard.nativeElement,
       translateX: [
         { value: -10, duration: 50, easing: 'easeOutQuad' },

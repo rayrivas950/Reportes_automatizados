@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../services/auth.service';
-import { animate } from 'animejs';
+import * as anime from 'animejs';
 
 @Component({
   selector: 'app-password-recovery',
@@ -44,7 +44,7 @@ export class PasswordRecoveryComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    (animate as any)({
+    (anime as any).default({
       targets: this.passwordRecoveryCard.nativeElement,
       opacity: [0, 1],
       translateY: [50, 0],
@@ -75,7 +75,7 @@ export class PasswordRecoveryComponent implements OnInit, AfterViewInit {
   }
 
   triggerErrorAnimation(): void {
-    (animate as any)({
+    (anime as any).default({
       targets: this.passwordRecoveryCard.nativeElement,
       translateX: [
         { value: -10, duration: 50, easing: 'easeOutQuad' },
