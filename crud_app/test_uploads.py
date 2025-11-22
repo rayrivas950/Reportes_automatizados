@@ -10,7 +10,7 @@ from decimal import Decimal # Added this import
 
 from .models import VentaImportada
 from .serializers_uploads import VentaImportadaSerializer, CompraImportadaSerializer
-from word2number_es import w2n
+
 
 User = get_user_model()
 

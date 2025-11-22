@@ -876,9 +876,16 @@ class UserRegistrationTests(APITestCase):
                 {"username": "pendinguser", "password": "pendingpassword"},
                 format="json",
             )
-            pending_user_token = token_response.data["access"]
+            # El login debe fallar porque el usuario está pendiente
+            self.assertEqual(token_response.status_code, status.HTTP_403_FORBIDDEN)
         finally:
             TokenObtainPairViewWithThrottle.throttle_classes = original_throttle_classes
+
+        # Generar token manualmente para probar el permiso del endpoint
+        from rest_framework_simplejwt.tokens import RefreshToken
+        user = User.objects.get(username="pendinguser")
+        refresh = RefreshToken.for_user(user)
+        pending_user_token = str(refresh.access_token)
 
         # Intentar acceder a un endpoint protegido (ej. lista de productos)
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + pending_user_token)
