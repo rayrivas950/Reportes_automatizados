@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
 import { AuthService } from '../../auth/services/auth.service';
 import { ApiService } from '../../services/api.service';
@@ -60,6 +60,18 @@ describe('DashboardComponent', () => {
         expect(apiServiceMock.getReporteSummary).toHaveBeenCalled();
         expect(component.summary).toEqual({ total_ventas: 100, total_compras: 50 });
     });
+
+    it('should show splash screen for 2 seconds', fakeAsync(() => {
+        expect(component.showSplash).toBeTrue();
+        component.ngOnInit(); // Reiniciar init para disparar timer si es necesario, aunque ya corre en beforeEach
+        // Nota: ngOnInit corre en beforeEach, así que el timer ya está activo.
+
+        tick(1000);
+        expect(component.showSplash).toBeTrue(); // Aún visible al 1s
+
+        tick(1000);
+        expect(component.showSplash).toBeFalse(); // Oculto a los 2s
+    }));
 
     it('should check user role on init', () => {
         expect(authServiceMock.getAccessToken).toHaveBeenCalled();

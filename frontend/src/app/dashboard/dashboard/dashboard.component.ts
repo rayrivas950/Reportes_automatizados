@@ -34,6 +34,7 @@ export class DashboardComponent implements OnInit {
   summary: ReporteSummary | null = null;
   conflictos: Conflicto[] = [];
   loading = false;
+  showSplash = true;
   username: string = '';
   isGerente = false;
 
@@ -47,6 +48,11 @@ export class DashboardComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    // Iniciar temporizador del Splash Screen
+    setTimeout(() => {
+      this.showSplash = false;
+    }, 2000);
+
     this.checkUserRole();
     this.loadSummary();
     if (this.isGerente) {
