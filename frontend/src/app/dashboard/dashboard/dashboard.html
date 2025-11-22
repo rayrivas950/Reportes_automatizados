@@ -1,5 +1,125 @@
 <div class="dashboard-container">
-  <h2>Bienvenido al Dashboard</h2>
-  <p>Has iniciado sesión correctamente.</p>
-  <button (click)="logout()">Cerrar Sesión</button>
+  <header class="dashboard-header">
+    <h1>Reportes Automatizados</h1>
+    <div class="user-controls">
+      <span class="username">Hola, {{ username }}</span>
+      <button mat-raised-button color="warn" (click)="logout()">
+        <mat-icon>logout</mat-icon> Cerrar Sesión
+      </button>
+    </div>
+  </header>
+
+  <mat-tab-group animationDuration="0ms">
+    <!-- Pestaña Resumen -->
+    <mat-tab label="Resumen">
+      <div class="tab-content">
+        <div *ngIf="loading" class="loading-spinner">
+          <mat-spinner></mat-spinner>
+        </div>
+
+        <div *ngIf="!loading && summary" class="summary-cards">
+          <mat-card class="summary-card sales-card">
+            <mat-card-header>
+              <mat-card-title>Total Ventas</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="amount">{{ summary.total_ventas | currency }}</p>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="summary-card purchases-card">
+            <mat-card-header>
+              <mat-card-title>Total Compras</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="amount">{{ summary.total_compras | currency }}</p>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Pestaña Operaciones -->
+    <mat-tab label="Operaciones">
+      <div class="tab-content">
+        <h3>Registrar Operaciones</h3>
+        <p>Aquí irán los formularios para registrar ventas, compras y subir archivos Excel.</p>
+        <!-- TODO: Componentes de formularios -->
+      </div>
+    </mat-tab>
+
+    <!-- Pestaña Historial -->
+    <mat-tab label="Historial">
+      <div class="tab-content">
+        <h3>Historial de Transacciones</h3>
+        <p>Tabla con las últimas ventas y compras.</p>
+        <!-- TODO: Tabla de historial -->
+      </div>
+    </mat-tab>
+
+    <!-- Pestaña Conflictos (Solo Gerentes) -->
+    <mat-tab label="Conflictos" *ngIf="isGerente">
+      <div class="tab-content">
+        <h3>Conflictos de Conciliación</h3>
+
+        <table mat-table [dataSource]="conflictos" class="mat-elevation-z8" *ngIf="conflictos.length > 0">
+          <!-- Tipo Column -->
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef> Tipo </th>
+            <td mat-cell *matCellDef="let element"> {{element.tipo_modelo}} </td>
+          </ng-container>
+
+          <!-- ID Borrado Column -->
+          <ng-container matColumnDef="id_borrado">
+            <th mat-header-cell *matHeaderCellDef> ID Borrado </th>
+            <td mat-cell *matCellDef="let element"> {{element.id_borrado}} </td>
+          </ng-container>
+
+          <!-- ID Existente Column -->
+          <ng-container matColumnDef="id_existente">
+            <th mat-header-cell *matHeaderCellDef> ID Existente </th>
+            <td mat-cell *matCellDef="let element"> {{element.id_existente}} </td>
+          </ng-container>
+
+          <!-- Estado Column -->
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef> Estado </th>
+            <td mat-cell *matCellDef="let element"> {{element.estado}} </td>
+          </ng-container>
+
+          <!-- Fecha Column -->
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef> Fecha Detección </th>
+            <td mat-cell *matCellDef="let element"> {{element.fecha_deteccion | date:'short'}} </td>
+          </ng-container>
+
+          <!-- Acciones Column -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef> Acciones </th>
+            <td mat-cell *matCellDef="let element">
+              <button mat-raised-button color="primary" (click)="resolverConflicto(element)"
+                [disabled]="element.estado !== 'PENDIENTE'">
+                Resolver
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumnsConflictos"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumnsConflictos;"></tr>
+        </table>
+
+        <p *ngIf="conflictos.length === 0">No hay conflictos pendientes.</p>
+      </div>
+    </mat-tab>
+
+    <!-- Pestaña Papelera (Solo Gerentes) -->
+    <mat-tab label="Papelera" *ngIf="isGerente">
+      <div class="tab-content">
+        <h3>Papelera de Reciclaje</h3>
+        <p>Elementos eliminados que pueden ser restaurados.</p>
+        <!-- TODO: Tabla de papelera -->
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
 </div>

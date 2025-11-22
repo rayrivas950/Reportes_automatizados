@@ -6,6 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+from .serializers_auth import CustomTokenObtainPairSerializer
 
 class TokenObtainPairViewWithThrottle(TokenObtainPairView):
     """
@@ -17,6 +18,7 @@ class TokenObtainPairViewWithThrottle(TokenObtainPairView):
 
     throttle_scope = "login"
     throttle_classes = [ScopedRateThrottle]
+    serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
         # Hacemos una copia mutable de los datos de la solicitud.

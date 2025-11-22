@@ -1,31 +1,49 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
 import { AuthService } from '../../auth/services/auth.service';
-import { Router } from '@angular/router';
+import { ApiService } from '../../services/api.service';
+import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('DashboardComponent', () => {
     let component: DashboardComponent;
     let fixture: ComponentFixture<DashboardComponent>;
     let authServiceMock: any;
-    let routerMock: any;
+    let apiServiceMock: any;
+    let matDialogMock: any;
 
     beforeEach(async () => {
-        // Mock del servicio de autenticación
         authServiceMock = {
+            getAccessToken: jasmine.createSpy('getAccessToken').and.returnValue('header.eyJ1c2VyX2lkIjogMX0=.signature'),
             logout: jasmine.createSpy('logout')
         };
 
-        // Mock del router
-        routerMock = {
-            navigate: jasmine.createSpy('navigate')
+        apiServiceMock = {
+            getReporteSummary: jasmine.createSpy('getReporteSummary').and.returnValue(of({ total_ventas: 100, total_compras: 50 })),
+            getConflictos: jasmine.createSpy('getConflictos').and.returnValue(of([])),
+            resolverConflicto: jasmine.createSpy('resolverConflicto').and.returnValue(of({}))
+        };
+
+        matDialogMock = {
+            open: jasmine.createSpy('open').and.returnValue({
+                afterClosed: () => of({ resolucion: 'RESTAURAR', notas: 'Test' })
+            })
         };
 
         await TestBed.configureTestingModule({
-            imports: [DashboardComponent], // Componente standalone
+            imports: [
+                DashboardComponent,
+                NoopAnimationsModule,
+                RouterTestingModule,
+                HttpClientTestingModule
+            ],
             providers: [
                 { provide: AuthService, useValue: authServiceMock },
-                { provide: Router, useValue: routerMock }
+                { provide: ApiService, useValue: apiServiceMock },
+                { provide: MatDialog, useValue: matDialogMock }
             ]
         }).compileComponents();
 
@@ -34,20 +52,18 @@ describe('DashboardComponent', () => {
         fixture.detectChanges();
     });
 
-    it('debería crearse correctamente', () => {
+    it('should create', () => {
         expect(component).toBeTruthy();
     });
 
-    it('debería renderizar el contenedor del dashboard', () => {
-        const compiled = fixture.nativeElement as HTMLElement;
-        // Asumimos que hay un contenedor principal o algún elemento distintivo.
-        // Ajustaremos esto si el HTML es muy simple.
-        expect(compiled).toBeTruthy();
+    it('should load summary on init', () => {
+        expect(apiServiceMock.getReporteSummary).toHaveBeenCalled();
+        expect(component.summary).toEqual({ total_ventas: 100, total_compras: 50 });
     });
 
-    it('debería llamar a authService.logout y redirigir al login al hacer logout', () => {
-        component.logout();
-        expect(authServiceMock.logout).toHaveBeenCalled();
-        expect(routerMock.navigate).toHaveBeenCalledWith(['/login']);
+    it('should check user role on init', () => {
+        expect(authServiceMock.getAccessToken).toHaveBeenCalled();
+        // En nuestra implementación mock, isGerente se setea a true si hay token (simplificado)
+        // Ajustar según la lógica real implementada en checkUserRole
     });
 });

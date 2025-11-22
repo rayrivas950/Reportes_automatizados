@@ -1,17 +1,127 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../auth/services/auth.service';
 import { Router } from '@angular/router';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+import { AuthService } from '../../auth/services/auth.service';
+import { ApiService } from '../../services/api.service';
+import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion } from '../../interfaces/api-models';
+import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog/conflict-resolution-dialog.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    MatTabsModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTableModule,
+    MatDialogModule,
+    MatProgressSpinnerModule
+  ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
 })
-export class DashboardComponent {
-  constructor(private authService: AuthService, private router: Router) {}
+export class DashboardComponent implements OnInit {
+  summary: ReporteSummary | null = null;
+  conflictos: Conflicto[] = [];
+  loading = false;
+  username: string = '';
+  isGerente = false;
+
+  displayedColumnsConflictos: string[] = ['tipo', 'id_borrado', 'id_existente', 'estado', 'fecha', 'acciones'];
+
+  constructor(
+    private authService: AuthService,
+    private apiService: ApiService,
+    private router: Router,
+    private dialog: MatDialog
+  ) { }
+
+  ngOnInit(): void {
+    this.checkUserRole();
+    this.loadSummary();
+    if (this.isGerente) {
+      this.loadConflictos();
+    }
+  }
+
+  checkUserRole(): void {
+    // Decodificar token para ver si es gerente (implementación simplificada)
+    // En un caso real, usaríamos una librería como jwt-decode o un endpoint /me
+    const token = this.authService.getAccessToken();
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+
+        // Extraer nombre de usuario
+        this.username = payload.username || 'Usuario';
+
+        // Verificar si el usuario es superusuario o pertenece al grupo Gerente
+        const groups = payload.groups || [];
+        const isSuperUser = payload.is_superuser || false;
+
+        this.isGerente = isSuperUser || groups.includes('Gerente');
+      } catch (e) {
+        console.error('Error decoding token', e);
+      }
+    }
+  }
+
+  loadSummary(): void {
+    this.loading = true;
+    this.apiService.getReporteSummary().subscribe({
+      next: (data) => {
+        this.summary = data;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error loading summary', err);
+        this.loading = false;
+      }
+    });
+  }
+
+  loadConflictos(): void {
+    this.apiService.getConflictos().subscribe({
+      next: (data) => {
+        this.conflictos = data;
+      },
+      error: (err) => console.error('Error loading conflictos', err)
+    });
+  }
+
+  resolverConflicto(conflicto: Conflicto): void {
+    const dialogRef = this.dialog.open(ConflictResolutionDialogComponent, {
+      width: '600px',
+      data: { conflicto }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        const resolucion: ConflictoResolucion = {
+          resolucion: result.resolucion,
+          notas: result.notas
+        };
+
+        this.apiService.resolverConflicto(conflicto.id, resolucion).subscribe({
+          next: (res) => {
+            console.log('Conflicto resuelto', res);
+            this.loadConflictos(); // Recargar lista
+          },
+          error: (err) => console.error('Error resolviendo conflicto', err)
+        });
+      }
+    });
+  }
 
   logout(): void {
     this.authService.logout();
