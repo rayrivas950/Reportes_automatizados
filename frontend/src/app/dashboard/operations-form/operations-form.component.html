@@ -1,0 +1,248 @@
+<div class="operations-container">
+    <mat-tab-group>
+        <!-- Tab de Registro Manual -->
+        <mat-tab label="Registro Manual">
+            <div class="tab-content">
+                <mat-tab-group>
+                    <!-- Formulario de Venta -->
+                    <mat-tab label="Registrar Venta">
+                        <div class="form-container">
+                            <h3>Nueva Venta</h3>
+                            <form [formGroup]="ventaForm" (ngSubmit)="onSubmitVenta()">
+                                <!-- Cliente con botón para expandir formulario -->
+                                <div class="field-with-button">
+                                    <mat-form-field appearance="fill">
+                                        <mat-label>Cliente</mat-label>
+                                        <mat-select formControlName="cliente">
+                                            <mat-option *ngFor="let cliente of clientes" [value]="cliente.id">
+                                                {{ cliente.nombre }}
+                                            </mat-option>
+                                        </mat-select>
+                                        <mat-error *ngIf="ventaForm.get('cliente')?.hasError('required')">
+                                            Cliente es requerido
+                                        </mat-error>
+                                    </mat-form-field>
+                                    <button mat-icon-button type="button" (click)="toggleNuevoClienteForm()"
+                                        matTooltip="Crear nuevo cliente">
+                                        <mat-icon>{{ showNuevoClienteForm ? 'remove_circle' : 'add_circle' }}</mat-icon>
+                                    </button>
+                                </div>
+
+                                <!-- Formulario inline para nuevo cliente -->
+                                <div class="inline-form" *ngIf="showNuevoClienteForm">
+                                    <h4>Nuevo Cliente</h4>
+                                    <form [formGroup]="nuevoClienteForm">
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Nombre</mat-label>
+                                            <input matInput formControlName="nombre" required>
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Email</mat-label>
+                                            <input matInput type="email" formControlName="email">
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Teléfono</mat-label>
+                                            <input matInput formControlName="telefono">
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Dirección (opcional)</mat-label>
+                                            <input matInput formControlName="direccion">
+                                        </mat-form-field>
+
+                                        <div class="inline-form-actions">
+                                            <button mat-button type="button" (click)="toggleNuevoClienteForm()">
+                                                Cancelar
+                                            </button>
+                                            <button mat-raised-button color="primary" type="button"
+                                                (click)="crearNuevoCliente()" [disabled]="!nuevoClienteForm.valid">
+                                                Crear Cliente
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Producto con autocompletado -->
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Producto</mat-label>
+                                    <input matInput [formControl]="productoVentaControl" [matAutocomplete]="autoVenta"
+                                        placeholder="Escribe para buscar o crear">
+                                    <mat-autocomplete #autoVenta="matAutocomplete" [displayWith]="displayProducto"
+                                        (optionSelected)="onProductoVentaSelected($event.option.value)">
+                                        <mat-option *ngFor="let producto of filteredProductosVenta | async"
+                                            [value]="producto">
+                                            {{ producto.nombre }}
+                                        </mat-option>
+                                        <mat-option
+                                            *ngIf="productoVentaControl.value && (filteredProductosVenta | async)?.length === 0"
+                                            (onSelectionChange)="onCrearProductoVenta()">
+                                            <mat-icon>add</mat-icon> Crear "{{ productoVentaControl.value }}"
+                                        </mat-option>
+                                    </mat-autocomplete>
+                                    <mat-error *ngIf="ventaForm.get('producto')?.hasError('required')">
+                                        Producto es requerido
+                                    </mat-error>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Cantidad</mat-label>
+                                    <input matInput type="number" formControlName="cantidad" min="1">
+                                    <mat-error *ngIf="ventaForm.get('cantidad')?.hasError('required')">
+                                        Cantidad es requerida
+                                    </mat-error>
+                                    <mat-error *ngIf="ventaForm.get('cantidad')?.hasError('min')">
+                                        Cantidad mínima es 1
+                                    </mat-error>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Precio Unitario</mat-label>
+                                    <input matInput type="number" formControlName="precio_venta" min="0.01" step="0.01">
+                                    <mat-error *ngIf="ventaForm.get('precio_venta')?.hasError('required')">
+                                        Precio es requerido
+                                    </mat-error>
+                                    <mat-error *ngIf="ventaForm.get('precio_venta')?.hasError('min')">
+                                        Precio mínimo es 0.01
+                                    </mat-error>
+                                </mat-form-field>
+
+                                <div class="form-actions">
+                                    <button mat-raised-button color="primary" type="submit"
+                                        [disabled]="!ventaForm.valid">
+                                        <mat-icon>add_shopping_cart</mat-icon> Registrar Venta
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </mat-tab>
+
+                    <!-- Formulario de Compra -->
+                    <mat-tab label="Registrar Compra">
+                        <div class="form-container">
+                            <h3>Nueva Compra</h3>
+                            <form [formGroup]="compraForm" (ngSubmit)="onSubmitCompra()">
+                                <!-- Proveedor con botón para expandir formulario -->
+                                <div class="field-with-button">
+                                    <mat-form-field appearance="fill">
+                                        <mat-label>Proveedor</mat-label>
+                                        <mat-select formControlName="proveedor">
+                                            <mat-option *ngFor="let proveedor of proveedores" [value]="proveedor.id">
+                                                {{ proveedor.nombre }}
+                                            </mat-option>
+                                        </mat-select>
+                                        <mat-error *ngIf="compraForm.get('proveedor')?.hasError('required')">
+                                            Proveedor es requerido
+                                        </mat-error>
+                                    </mat-form-field>
+                                    <button mat-icon-button type="button" (click)="toggleNuevoProveedorForm()"
+                                        matTooltip="Crear nuevo proveedor">
+                                        <mat-icon>{{ showNuevoProveedorForm ? 'remove_circle' : 'add_circle'
+                                            }}</mat-icon>
+                                    </button>
+                                </div>
+
+                                <!-- Formulario inline para nuevo proveedor -->
+                                <div class="inline-form" *ngIf="showNuevoProveedorForm">
+                                    <h4>Nuevo Proveedor</h4>
+                                    <form [formGroup]="nuevoProveedorForm">
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Nombre de Empresa</mat-label>
+                                            <input matInput formControlName="nombre" required>
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Nombre de Contacto</mat-label>
+                                            <input matInput formControlName="persona_contacto">
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Email</mat-label>
+                                            <input matInput type="email" formControlName="email">
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
+                                            <mat-label>Teléfono</mat-label>
+                                            <input matInput formControlName="telefono">
+                                        </mat-form-field>
+
+                                        <div class="inline-form-actions">
+                                            <button mat-button type="button" (click)="toggleNuevoProveedorForm()">
+                                                Cancelar
+                                            </button>
+                                            <button mat-raised-button color="primary" type="button"
+                                                (click)="crearNuevoProveedor()" [disabled]="!nuevoProveedorForm.valid">
+                                                Crear Proveedor
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Producto con autocompletado -->
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Producto</mat-label>
+                                    <input matInput [formControl]="productoCompraControl" [matAutocomplete]="autoCompra"
+                                        placeholder="Escribe para buscar o crear">
+                                    <mat-autocomplete #autoCompra="matAutocomplete" [displayWith]="displayProducto"
+                                        (optionSelected)="onProductoCompraSelected($event.option.value)">
+                                        <mat-option *ngFor="let producto of filteredProductosCompra | async"
+                                            [value]="producto">
+                                            {{ producto.nombre }}
+                                        </mat-option>
+                                        <mat-option
+                                            *ngIf="productoCompraControl.value && (filteredProductosCompra | async)?.length === 0"
+                                            (onSelectionChange)="onCrearProductoCompra()">
+                                            <mat-icon>add</mat-icon> Crear "{{ productoCompraControl.value }}"
+                                        </mat-option>
+                                    </mat-autocomplete>
+                                    <mat-error *ngIf="compraForm.get('producto')?.hasError('required')">
+                                        Producto es requerido
+                                    </mat-error>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Cantidad</mat-label>
+                                    <input matInput type="number" formControlName="cantidad" min="1">
+                                    <mat-error *ngIf="compraForm.get('cantidad')?.hasError('required')">
+                                        Cantidad es requerida
+                                    </mat-error>
+                                    <mat-error *ngIf="compraForm.get('cantidad')?.hasError('min')">
+                                        Cantidad mínima es 1
+                                    </mat-error>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Precio Unitario de Compra</mat-label>
+                                    <input matInput type="number" formControlName="precio_compra_unitario" min="0.01"
+                                        step="0.01">
+                                    <mat-error *ngIf="compraForm.get('precio_compra_unitario')?.hasError('required')">
+                                        Precio es requerido
+                                    </mat-error>
+                                    <mat-error *ngIf="compraForm.get('precio_compra_unitario')?.hasError('min')">
+                                        Precio mínimo es 0.01
+                                    </mat-error>
+                                </mat-form-field>
+
+                                <div class="form-actions">
+                                    <button mat-raised-button color="accent" type="submit"
+                                        [disabled]="!compraForm.valid">
+                                        <mat-icon>inventory</mat-icon> Registrar Compra
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </mat-tab>
+                </mat-tab-group>
+            </div>
+        </mat-tab>
+
+        <!-- Tab de Carga de Archivos -->
+        <mat-tab label="Carga de Archivos">
+            <div class="tab-content">
+                <p>Funcionalidad de carga de archivos Excel (próximamente)</p>
+                <!-- TODO: Componente de carga de archivos -->
+            </div>
+        </mat-tab>
+    </mat-tab-group>
+</div>

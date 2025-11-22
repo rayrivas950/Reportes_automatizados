@@ -13,6 +13,7 @@ import { AuthService } from '../../auth/services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion } from '../../interfaces/api-models';
 import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog/conflict-resolution-dialog.component';
+import { OperationsFormComponent } from '../operations-form/operations-form.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,7 +26,8 @@ import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog
     MatIconModule,
     MatTableModule,
     MatDialogModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    OperationsFormComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],

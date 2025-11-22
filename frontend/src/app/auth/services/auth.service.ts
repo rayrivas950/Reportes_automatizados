@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -7,9 +8,15 @@ import { tap } from 'rxjs/operators';
   providedIn: 'root',
 })
 export class AuthService {
-  private API_URL = 'http://localhost:8000/api'; // Asegúrate de que esta URL sea correcta
+  private API_URL = 'http://localhost:8000/api';
+  private isBrowser: boolean;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+  }
 
   login(credentials: any): Observable<any> {
     return this.http.post(`${this.API_URL}/token/`, credentials).pipe(
@@ -28,16 +35,24 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    if (this.isBrowser) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    }
   }
 
   public getAccessToken(): string | null {
-    return localStorage.getItem('access_token');
+    if (this.isBrowser) {
+      return localStorage.getItem('access_token');
+    }
+    return null;
   }
 
   public getRefreshToken(): string | null {
-    return localStorage.getItem('refresh_token');
+    if (this.isBrowser) {
+      return localStorage.getItem('refresh_token');
+    }
+    return null;
   }
 
   public isLoggedIn(): boolean {
@@ -49,15 +64,17 @@ export class AuthService {
     if (refreshToken) {
       return this.http.post(`${this.API_URL}/token/refresh/`, { refresh: refreshToken }).pipe(
         tap((response: any) => {
-          this.setTokens(response.access, refreshToken); // Solo se actualiza el access token
+          this.setTokens(response.access, refreshToken);
         })
       );
     }
-    return new Observable(); // Retorna un observable vacío si no hay refresh token
+    return new Observable();
   }
 
   private setTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    if (this.isBrowser) {
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+    }
   }
 }
