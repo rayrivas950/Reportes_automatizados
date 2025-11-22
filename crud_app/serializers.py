@@ -3,7 +3,7 @@ from django.db.models import Sum
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
-from .models import Producto, Proveedor, Cliente, Compra, Venta
+from .models import Producto, Proveedor, Cliente, Compra, Venta, Conflicto
 
 User = get_user_model()
 
@@ -107,3 +107,31 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             pass  # La transacción se encargará de revertir si hay un error grave.
 
         return user
+
+
+class ConflictoSerializer(serializers.ModelSerializer):
+    detectado_por_username = serializers.ReadOnlyField(source="detectado_por.username")
+    resuelto_por_username = serializers.ReadOnlyField(source="resuelto_por.username")
+
+    class Meta:
+        model = Conflicto
+        fields = [
+            "id",
+            "tipo_modelo",
+            "id_borrado",
+            "id_existente",
+            "estado",
+            "detectado_por",
+            "detectado_por_username",
+            "fecha_deteccion",
+            "resuelto_por",
+            "resuelto_por_username",
+            "fecha_resolucion",
+            "notas_resolucion",
+        ]
+        read_only_fields = [
+            "detectado_por",
+            "fecha_deteccion",
+            "resuelto_por",
+            "fecha_resolucion",
+        ]

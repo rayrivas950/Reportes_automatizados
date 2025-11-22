@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from simple_history.models import HistoricalRecords
 
@@ -11,7 +12,7 @@ class SoftDeleteManager(models.Manager):
 
 class Proveedor(models.Model):
     nombre = models.CharField(
-        max_length=100, unique=True, verbose_name="Nombre del Proveedor"
+        max_length=100, verbose_name="Nombre del Proveedor"
     )
     persona_contacto = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Persona de Contacto"
@@ -63,6 +64,13 @@ class Proveedor(models.Model):
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores"
         ordering = ["nombre"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["nombre"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_proveedor_nombre",
+            )
+        ]
 
     def __str__(self):
         return self.nombre
@@ -72,7 +80,6 @@ class Cliente(models.Model):
     nombre = models.CharField(max_length=100, verbose_name="Nombre del Cliente")
     email = models.EmailField(
         max_length=254,
-        unique=True,
         blank=True,
         null=True,
         verbose_name="Correo Electrónico",
@@ -121,6 +128,13 @@ class Cliente(models.Model):
         verbose_name = "Cliente"
         verbose_name_plural = "Clientes"
         ordering = ["nombre"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["email"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_cliente_email",
+            )
+        ]
 
     def __str__(self):
         return self.nombre
@@ -128,7 +142,7 @@ class Cliente(models.Model):
 
 class Producto(models.Model):
     nombre = models.CharField(
-        max_length=100, unique=True, verbose_name="Nombre del Producto"
+        max_length=100, verbose_name="Nombre del Producto"
     )
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
     proveedor = models.ForeignKey(
@@ -186,6 +200,13 @@ class Producto(models.Model):
         verbose_name = "Producto"
         verbose_name_plural = "Productos"
         ordering = ["nombre"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["nombre"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_producto_nombre",
+            )
+        ]
 
     def __str__(self):
         return self.nombre
@@ -418,3 +439,72 @@ class CompraImportada(TransaccionImportadaBase):
     class Meta:
         verbose_name = "Compra Importada"
         verbose_name_plural = "Compras Importadas"
+
+
+class Conflicto(models.Model):
+    """
+    Modelo para registrar conflictos detectados al intentar restaurar elementos
+    que tienen coincidencias con registros activos.
+    """
+
+    class TipoModelo(models.TextChoices):
+        PRODUCTO = "PRODUCTO", "Producto"
+        CLIENTE = "CLIENTE", "Cliente"
+        PROVEEDOR = "PROVEEDOR", "Proveedor"
+        VENTA = "VENTA", "Venta"
+        COMPRA = "COMPRA", "Compra"
+
+    class Estado(models.TextChoices):
+        PENDIENTE = "PENDIENTE", "Pendiente de Resolución"
+        RESUELTO_RESTAURAR = "RESUELTO_RESTAURAR", "Resuelto (Restaurado)"
+        RESUELTO_IGNORAR = "RESUELTO_IGNORAR", "Resuelto (Ignorado)"
+
+    tipo_modelo = models.CharField(
+        max_length=20, choices=TipoModelo.choices, verbose_name="Tipo de Modelo"
+    )
+    id_borrado = models.PositiveIntegerField(verbose_name="ID del Elemento Borrado")
+    id_existente = models.PositiveIntegerField(
+        verbose_name="ID del Elemento Existente (Conflicto)"
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=Estado.choices,
+        default=Estado.PENDIENTE,
+        verbose_name="Estado del Conflicto",
+    )
+
+    # Metadatos de detección y resolución
+    detectado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="conflictos_detectados",
+        verbose_name="Detectado por",
+    )
+    fecha_deteccion = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Detección"
+    )
+
+    resuelto_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="conflictos_resueltos",
+        verbose_name="Resuelto por",
+    )
+    fecha_resolucion = models.DateTimeField(
+        null=True, blank=True, verbose_name="Fecha de Resolución"
+    )
+    notas_resolucion = models.TextField(
+        blank=True, null=True, verbose_name="Notas de Resolución"
+    )
+
+    class Meta:
+        verbose_name = "Conflicto de Conciliación"
+        verbose_name_plural = "Conflictos de Conciliación"
+        ordering = ["-fecha_deteccion"]
+
+    def __str__(self):
+        return f"Conflicto {self.tipo_modelo} (Borrado: {self.id_borrado} vs Existente: {self.id_existente})"

@@ -16,14 +16,16 @@ from .permissions import (
     IsGerente,
     IsAprobado,
 )  # Importamos el permiso personalizado y IsAprobado
-from .models import Proveedor, Cliente, Producto, Compra, Venta
+from .models import Proveedor, Cliente, Producto, Compra, Venta, Conflicto
 from .serializers import (
     ProveedorSerializer,
     ClienteSerializer,
     ProductoSerializer,
     CompraSerializer,
     VentaSerializer,
-    UserRegistrationSerializer,  # Importamos el nuevo serializador
+    VentaSerializer,
+    UserRegistrationSerializer,
+    ConflictoSerializer,
 )
 from .filters import (
     ProductoBaseFilter,
@@ -101,6 +103,22 @@ class ProveedorViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Lógica de detección de conflictos
+        conflicto_existente = Proveedor.objects.filter(nombre=proveedor.nombre).first()
+        if conflicto_existente:
+            Conflicto.objects.create(
+                tipo_modelo=Conflicto.TipoModelo.PROVEEDOR,
+                id_borrado=proveedor.id,
+                id_existente=conflicto_existente.id,
+                detectado_por=request.user,
+            )
+            return Response(
+                {
+                    "status": "Conflicto detectado. El proveedor no ha sido restaurado y se ha creado un registro de conflicto."
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+
         proveedor.deleted_at = None
         proveedor.save()
         return Response({"status": "proveedor restaurado"})
@@ -163,6 +181,22 @@ class ClienteViewSet(viewsets.ModelViewSet):
             return Response(
                 {"status": "El cliente no está en la papelera."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Lógica de detección de conflictos
+        conflicto_existente = Cliente.objects.filter(email=cliente.email).first()
+        if conflicto_existente and cliente.email:
+            Conflicto.objects.create(
+                tipo_modelo=Conflicto.TipoModelo.CLIENTE,
+                id_borrado=cliente.id,
+                id_existente=conflicto_existente.id,
+                detectado_por=request.user,
+            )
+            return Response(
+                {
+                    "status": "Conflicto detectado. El cliente no ha sido restaurado y se ha creado un registro de conflicto."
+                },
+                status=status.HTTP_202_ACCEPTED,
             )
 
         cliente.deleted_at = None
@@ -236,6 +270,22 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Lógica de detección de conflictos
+        conflicto_existente = Producto.objects.filter(nombre=producto.nombre).first()
+        if conflicto_existente:
+            Conflicto.objects.create(
+                tipo_modelo=Conflicto.TipoModelo.PRODUCTO,
+                id_borrado=producto.id,
+                id_existente=conflicto_existente.id,
+                detectado_por=request.user,
+            )
+            return Response(
+                {
+                    "status": "Conflicto detectado. El producto no ha sido restaurado y se ha creado un registro de conflicto."
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+
         producto.deleted_at = None
         producto.save()
         return Response({"status": "producto restaurado"})
@@ -298,6 +348,31 @@ class CompraViewSet(viewsets.ModelViewSet):
             return Response(
                 {"status": "La compra no está en la papelera."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Lógica de detección de conflictos (Mismo proveedor, misma cantidad, fecha cercana +/- 24h)
+        rango_tiempo = timezone.timedelta(hours=24)
+        conflicto_existente = Compra.objects.filter(
+            proveedor=compra.proveedor,
+            cantidad=compra.cantidad,
+            fecha_compra__range=(
+                compra.fecha_compra - rango_tiempo,
+                compra.fecha_compra + rango_tiempo,
+            ),
+        ).first()
+
+        if conflicto_existente:
+            Conflicto.objects.create(
+                tipo_modelo=Conflicto.TipoModelo.COMPRA,
+                id_borrado=compra.id,
+                id_existente=conflicto_existente.id,
+                detectado_por=request.user,
+            )
+            return Response(
+                {
+                    "status": "Conflicto detectado. La compra no ha sido restaurada y se ha creado un registro de conflicto."
+                },
+                status=status.HTTP_202_ACCEPTED,
             )
 
         compra.deleted_at = None
@@ -367,6 +442,31 @@ class VentaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Lógica de detección de conflictos (Mismo cliente, misma cantidad, fecha cercana +/- 24h)
+        rango_tiempo = timezone.timedelta(hours=24)
+        conflicto_existente = Venta.objects.filter(
+            cliente=venta.cliente,
+            cantidad=venta.cantidad,
+            fecha_venta__range=(
+                venta.fecha_venta - rango_tiempo,
+                venta.fecha_venta + rango_tiempo,
+            ),
+        ).first()
+
+        if conflicto_existente:
+            Conflicto.objects.create(
+                tipo_modelo=Conflicto.TipoModelo.VENTA,
+                id_borrado=venta.id,
+                id_existente=conflicto_existente.id,
+                detectado_por=request.user,
+            )
+            return Response(
+                {
+                    "status": "Conflicto detectado. La venta no ha sido restaurada y se ha creado un registro de conflicto."
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+
         venta.deleted_at = None
         venta.save()
         return Response({"status": "venta restaurada"})
@@ -412,3 +512,86 @@ class UserRegistrationView(generics.CreateAPIView):
 
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
+
+
+class ConflictosViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar los conflictos de conciliación.
+    Solo los gerentes pueden ver y resolver conflictos.
+    """
+
+    queryset = Conflicto.objects.all()
+    serializer_class = ConflictoSerializer
+    permission_classes = [IsAuthenticated, IsGerente]
+
+    @action(detail=True, methods=["post"])
+    def resolver(self, request, pk=None):
+        conflicto = self.get_object()
+        resolucion = request.data.get("resolucion")  # 'RESTAURAR' o 'IGNORAR'
+        notas = request.data.get("notas", "")
+
+        if conflicto.estado != Conflicto.Estado.PENDIENTE:
+            return Response(
+                {"error": "Este conflicto ya ha sido resuelto."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if resolucion == "RESTAURAR":
+            # Lógica para restaurar el elemento borrado y (opcionalmente) borrar el existente
+            # Esto depende de la regla de negocio exacta. Por ahora, asumimos que "Restaurar"
+            # significa recuperar el borrado. ¿Qué pasa con el existente?
+            # El usuario dijo: "Restaurar Borrada (Sobrescribir)" vs "Mantener Existente".
+            # Si sobrescribimos, deberíamos borrar el existente o archivarlo.
+            # Vamos a implementar: Restaurar el borrado y marcar el existente como borrado (Soft Delete).
+
+            modelo_map = {
+                Conflicto.TipoModelo.PRODUCTO: Producto,
+                Conflicto.TipoModelo.CLIENTE: Cliente,
+                Conflicto.TipoModelo.PROVEEDOR: Proveedor,
+                Conflicto.TipoModelo.VENTA: Venta,
+                Conflicto.TipoModelo.COMPRA: Compra,
+            }
+
+            Modelo = modelo_map.get(conflicto.tipo_modelo)
+            if not Modelo:
+                return Response(
+                    {"error": "Tipo de modelo desconocido."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                # Primero: Borrar el existente (Soft Delete) para liberar la restricción de unicidad
+                item_existente = Modelo.objects.get(pk=conflicto.id_existente)
+                item_existente.deleted_at = timezone.now()
+                item_existente.save()
+
+                # Segundo: Recuperar el borrado
+                item_borrado = Modelo.all_objects.get(pk=conflicto.id_borrado)
+                item_borrado.deleted_at = None
+                item_borrado.save()
+
+                conflicto.estado = Conflicto.Estado.RESUELTO_RESTAURAR
+
+            except Modelo.DoesNotExist:
+                return Response(
+                    {"error": "No se encontraron los registros involucrados."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        elif resolucion == "IGNORAR":
+            # Simplemente marcamos el conflicto como resuelto ignorando el borrado.
+            conflicto.estado = Conflicto.Estado.RESUELTO_IGNORAR
+
+        else:
+            return Response(
+                {"error": "Resolución no válida. Use 'RESTAURAR' o 'IGNORAR'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        conflicto.resuelto_por = request.user
+        conflicto.fecha_resolucion = timezone.now()
+        conflicto.notas_resolucion = notas
+        conflicto.save()
+
+        return Response({"status": f"Conflicto resuelto como {resolucion}"})
+

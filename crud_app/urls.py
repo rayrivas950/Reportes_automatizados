@@ -10,6 +10,7 @@ from .views import (
     VentaViewSet,
     ReporteSummary,
     UserRegistrationView,
+    ConflictosViewSet,
 )
 
 # Vistas personalizadas para acciones específicas
@@ -30,6 +31,7 @@ router.register(r"reportes/summary", ReporteSummary, basename="reporte-summary")
 # Registramos los nuevos ViewSets para la conciliación
 router.register(r"ventas-importadas", VentaImportadaViewSet)
 router.register(r"compras-importadas", CompraImportadaViewSet)
+router.register(r"conflictos", ConflictosViewSet)
 
 # Las URLs de la API son determinadas automáticamente por el router.
 # Añadimos rutas personalizadas para acciones específicas como registro o carga de archivos.
