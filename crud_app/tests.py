@@ -964,7 +964,7 @@ class UserRegistrationTests(APITestCase):
     "ALGORITHM": "HS256",
     "SIGNING_KEY": "test_secret_key",
 })
-class JWTTests(APITestCase):
+class JWTTests(TransactionTestCase):
     """
     Pruebas dedicadas a la funcionalidad de JWT, incluyendo rotación de refresh tokens y blacklist.
     """
@@ -983,12 +983,10 @@ class JWTTests(APITestCase):
         self.user.groups.add(Group.objects.get(name="Empleado"))
 
         # Arrange: Obtener tokens iniciales
-        token_url = reverse("token_obtain_pair")
-        response = self.client.post(
-            token_url, {"username": "jwtuser", "password": "jwtpassword"}, format="json"
-        )
-        self.initial_access_token = response.data["access"]
-        self.initial_refresh_token = response.data["refresh"]
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(self.user)
+        self.initial_refresh_token = str(refresh)
+        self.initial_access_token = str(refresh.access_token)
 
     def test_refresh_token_rotation(self):
         """
