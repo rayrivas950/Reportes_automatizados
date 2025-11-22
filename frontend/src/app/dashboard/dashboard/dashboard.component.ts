@@ -14,6 +14,7 @@ import { ApiService } from '../../services/api.service';
 import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion } from '../../interfaces/api-models';
 import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog/conflict-resolution-dialog.component';
 import { OperationsFormComponent } from '../operations-form/operations-form.component';
+import { FileUploadComponent } from '../file-upload/file-upload.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,7 +28,9 @@ import { OperationsFormComponent } from '../operations-form/operations-form.comp
     MatTableModule,
     MatDialogModule,
     MatProgressSpinnerModule,
-    OperationsFormComponent
+    ConflictResolutionDialogComponent,
+    OperationsFormComponent,
+    FileUploadComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],

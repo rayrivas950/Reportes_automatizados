@@ -263,3 +263,8 @@ LOGGING = {
         },
     },
 }
+
+# Configuración de carga de archivos
+# Límite de 5MB para carga de archivos y datos
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB

@@ -129,9 +129,22 @@ export class ApiService {
     }
 
     // --- Carga de Archivos ---
-    uploadFile(type: 'ventas' | 'compras', file: File): Observable<any> {
+    uploadFile(type: 'ventas' | 'compras', file: File): Observable<UploadResponse> {
         const formData = new FormData();
         formData.append('file', file);
-        return this.http.post<any>(`${this.API_URL}/${type}/upload/`, formData);
+        return this.http.post<UploadResponse>(`${this.API_URL}/${type}/upload/`, formData);
     }
+}
+
+// Interfaces para upload
+export interface UploadErrorDetail {
+    fila_excel: number;
+    datos_originales: any;
+    errores: any;
+}
+
+export interface UploadResponse {
+    mensaje: string;
+    errores_filas?: UploadErrorDetail[];
+    error?: string; // Para errores generales 400
 }

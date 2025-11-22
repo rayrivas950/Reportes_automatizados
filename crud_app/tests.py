@@ -4,7 +4,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model  # Importamos el modelo de usuario
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from django.test import override_settings  # Importamos override_settings
+from datetime import timedelta  # Importamos timedelta
+from django.test import override_settings, TransactionTestCase  # Importamos override_settings y TransactionTestCase
 from .models import Proveedor, Cliente, Producto, Compra, Venta
 from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
@@ -952,6 +953,17 @@ class UserRegistrationTests(APITestCase):
 # --- NUEVA CLASE DE PRUEBAS PARA JWT ---
 
 
+# --- NUEVA CLASE DE PRUEBAS PARA JWT ---
+
+
+@override_settings(SIMPLE_JWT={
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": "test_secret_key",
+})
 class JWTTests(APITestCase):
     """
     Pruebas dedicadas a la funcionalidad de JWT, incluyendo rotación de refresh tokens y blacklist.
@@ -959,6 +971,7 @@ class JWTTests(APITestCase):
 
     def setUp(self):
         super().setUp()
+        self.client = APIClient()
         # Arrange: Limpiar la base de datos de tokens para un estado consistente en cada test
         OutstandingToken.objects.all().delete()
         BlacklistedToken.objects.all().delete()
