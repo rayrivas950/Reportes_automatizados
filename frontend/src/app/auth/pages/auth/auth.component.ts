@@ -6,7 +6,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Observable } from 'rxjs';
+
 import { AuthService } from '../../services/auth.service';
+import { ThemeService, Theme } from '../../../services/theme.service';
 import * as anime from 'animejs'; // Importación como namespace
 
 @Component({
@@ -19,7 +25,10 @@ import * as anime from 'animejs'; // Importación como namespace
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule
+    MatButtonModule,
+    MatSlideToggleModule,
+    MatIconModule,
+    MatTooltipModule
   ],
   templateUrl: './auth.component.html',
   styleUrls: ['./auth.component.scss']
@@ -44,11 +53,25 @@ export class AuthComponent implements OnInit, AfterViewInit {
   recoveryErrorMessage: string | null = null;
   recoverySuccessMessage: string | null = null;
 
+  // --- Theme Properties ---
+  currentTheme$: Observable<Theme>;
+  isDarkTheme = false;
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private themeService: ThemeService
+  ) {
+    // Suscribirse al tema actual
+    this.currentTheme$ = this.themeService.currentTheme$;
+    this.isDarkTheme = this.themeService.isDarkTheme();
+
+    // Actualizar isDarkTheme cuando cambie el tema
+    this.currentTheme$.subscribe(theme => {
+      this.isDarkTheme = theme === 'dark';
+    });
+  }
 
   ngOnInit(): void {
     this.registrationForm = this.fb.group({
@@ -65,6 +88,11 @@ export class AuthComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.animateCardIn();
+  }
+
+  // --- Theme methods ---
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
   }
 
   // --- View-switching methods ---

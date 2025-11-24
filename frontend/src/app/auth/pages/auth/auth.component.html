@@ -1,4 +1,15 @@
+<!-- Theme Toggle Switch -->
+<div class="theme-toggle-container">
+  <mat-icon class="theme-icon sun-icon" [class.active]="!isDarkTheme">light_mode</mat-icon>
+  <mat-slide-toggle [checked]="isDarkTheme" (change)="toggleTheme()" color="primary" class="theme-toggle"
+    matTooltip="Cambiar tema" matTooltipPosition="below">
+  </mat-slide-toggle>
+  <mat-icon class="theme-icon moon-icon" [class.active]="isDarkTheme">dark_mode</mat-icon>
+</div>
+
 <div class="auth-page-container" #authContainer [ngClass]="'view-' + currentView">
+
+
   <div class="forms-wrapper">
 
     <!-- Login Form -->
@@ -39,35 +50,41 @@
             <mat-form-field appearance="fill">
               <mat-label>Nombre de Usuario</mat-label>
               <input matInput formControlName="username" required>
-              <mat-error *ngIf="registrationForm.get('username')?.hasError('required') && registrationForm.get('username')?.touched">
+              <mat-error
+                *ngIf="registrationForm.get('username')?.hasError('required') && registrationForm.get('username')?.touched">
                 El nombre de usuario es requerido.
               </mat-error>
             </mat-form-field>
             <mat-form-field appearance="fill">
               <mat-label>Correo Electrónico</mat-label>
               <input matInput formControlName="email" type="email" required>
-              <mat-error *ngIf="registrationForm.get('email')?.hasError('required') && registrationForm.get('email')?.touched">
+              <mat-error
+                *ngIf="registrationForm.get('email')?.hasError('required') && registrationForm.get('email')?.touched">
                 El correo electrónico es requerido.
               </mat-error>
-              <mat-error *ngIf="registrationForm.get('email')?.hasError('email') && registrationForm.get('email')?.touched">
+              <mat-error
+                *ngIf="registrationForm.get('email')?.hasError('email') && registrationForm.get('email')?.touched">
                 Ingresa un correo electrónico válido.
               </mat-error>
             </mat-form-field>
             <mat-form-field appearance="fill">
               <mat-label>Contraseña</mat-label>
               <input matInput formControlName="password" type="password" required>
-               <mat-error *ngIf="registrationForm.get('password')?.hasError('minlength') && registrationForm.get('password')?.touched">
+              <mat-error
+                *ngIf="registrationForm.get('password')?.hasError('minlength') && registrationForm.get('password')?.touched">
                 La contraseña debe tener al menos 8 caracteres.
               </mat-error>
             </mat-form-field>
             <mat-form-field appearance="fill">
               <mat-label>Confirmar Contraseña</mat-label>
               <input matInput formControlName="password2" type="password" required>
-              <mat-error *ngIf="registrationForm.get('password2')?.hasError('mismatch') && registrationForm.get('password2')?.touched">
+              <mat-error
+                *ngIf="registrationForm.get('password2')?.hasError('mismatch') && registrationForm.get('password2')?.touched">
                 Las contraseñas no coinciden.
               </mat-error>
             </mat-form-field>
-            <button mat-raised-button color="primary" type="submit" [disabled]="!registrationForm.valid">Registrar</button>
+            <button mat-raised-button color="primary" type="submit"
+              [disabled]="!registrationForm.valid">Registrar</button>
           </form>
           <p *ngIf="registrationErrorMessage" class="error-message">{{ registrationErrorMessage }}</p>
           <p *ngIf="registrationSuccessMessage" class="success-message">{{ registrationSuccessMessage }}</p>
@@ -96,7 +113,8 @@
                 Ingresa un correo electrónico válido.
               </mat-error>
             </mat-form-field>
-            <button mat-raised-button color="primary" type="submit" [disabled]="!recoveryForm.valid">Restablecer</button>
+            <button mat-raised-button color="primary" type="submit"
+              [disabled]="!recoveryForm.valid">Restablecer</button>
           </form>
           <p *ngIf="recoveryErrorMessage" class="error-message">{{ recoveryErrorMessage }}</p>
           <p *ngIf="recoverySuccessMessage" class="success-message">{{ recoverySuccessMessage }}</p>

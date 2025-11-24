@@ -3,26 +3,27 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f5f5f5;
-  overflow: hidden; // Hide the other forms
-  font-family: 'Roboto', sans-serif; // Using a common, modern font
+  background-color: var(--bg-primary); // Use theme variable
+  overflow: hidden;
+  font-family: 'Roboto', sans-serif;
+  transition: background-color 0.3s ease; // Smooth transition for background
 }
 
 .auth-page-container {
   width: 100%;
-  max-width: 400px; 
-  perspective: 1000px; // For potential 3D effects
-  // Ensure the container itself has a subtle shadow for overall depth
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); // Enhanced shadow
+  max-width: 400px;
+  perspective: 1000px;
+  box-shadow: 0 8px 25px var(--shadow-color, rgba(0, 0, 0, 0.15)); // Use variable if available
   border-radius: 12px;
-  overflow: hidden; // Crucial for the swipe effect to clip correctly
-  background-color: white; // Explicitly set background
+  overflow: hidden;
+  background-color: var(--bg-secondary); // Fix white box issue
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .forms-wrapper {
   display: flex;
-  width: 300%; // To accommodate three forms
-  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55); // A more dynamic transition
+  width: 300%;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
   height: 100%;
 }
 
@@ -30,76 +31,78 @@
   width: calc(100% / 3);
   flex-shrink: 0;
   box-sizing: border-box;
-  display: flex; // To center content vertically within the card space if needed
+  display: flex;
   justify-content: center;
-  align-items: flex-start; // Align forms to the top within their card
+  align-items: flex-start;
 }
 
 // --- Slide Logic ---
 .view-login .forms-wrapper {
   transform: translateX(0);
 }
+
 .view-register .forms-wrapper {
   transform: translateX(-33.333%);
 }
+
 .view-recover .forms-wrapper {
   transform: translateX(-66.666%);
 }
 
 
-// --- Common Card Styles (merged from other components) ---
+// --- Common Card Styles ---
 mat-card {
   width: 100%;
-  padding: 24px; // Consistent padding inside the card
-  box-shadow: none; // Remove default mat-card shadow, as it's on the container
-  border-radius: 0; // Remove default mat-card border-radius, as it's on the container
-  background: white; // Ensure background is white
+  padding: 24px;
+  box-shadow: none;
+  border-radius: 0;
+  background: var(--bg-secondary); // Use theme variable
   display: flex;
   flex-direction: column;
-  box-sizing: border-box; // Ensure padding doesn't affect width calculations
+  box-sizing: border-box;
+  color: var(--text-primary); // Ensure text color adapts
 }
 
 mat-card-header {
   justify-content: center;
   margin-bottom: 20px;
-  padding: 0; // Remove default padding
+  padding: 0;
 }
 
 mat-card-title {
-  font-size: 1.8em; // Larger title for better readability
+  font-size: 1.8em;
   font-weight: 500;
-  color: #3f51b5; // Material Design primary color
+  color: var(--primary-color, #3f51b5); // Use theme primary color
 }
 
 mat-card-content {
   display: flex;
   flex-direction: column;
-  gap: 15px; // Space between form fields
+  gap: 15px;
 }
 
 mat-form-field {
   width: 100%;
-  // margin-bottom: 15px; // Replaced by gap in mat-card-content
 }
 
 button[mat-raised-button] {
   width: 100%;
   padding: 10px 0;
-  margin-top: 20px; // Space above the button
+  margin-top: 20px;
   font-size: 1.1em;
   font-weight: 500;
 }
 
 .error-message {
-  color: #f44336; // Material Design red
+  color: #f44336;
   text-align: center;
   margin-top: 15px;
-  min-height: 20px; // Ensure consistent spacing even if no error
+  min-height: 20px;
   font-size: 0.9em;
 }
 
 .success-message {
-  color: #4caf50; // Material Design green
+  color: #4caf50;
   text-align: center;
   margin-top: 15px;
   min-height: 20px;
@@ -110,17 +113,42 @@ mat-card-actions {
   display: flex;
   justify-content: space-between;
   margin-top: 20px;
-  padding: 0 0 0; // Remove default padding
-  
+  padding: 0 0 0;
+
   a {
     cursor: pointer;
-    color: #3f51b5; // Material Design primary color
+    color: var(--primary-color, #3f51b5); // Use theme variable
     text-decoration: none;
     font-weight: 500;
-    
+
     &:hover {
-      color: #303f9f; // Darker shade on hover
+      color: var(--primary-color-dark, #303f9f);
       text-decoration: underline;
     }
+  }
+}
+
+// Theme toggle styles (copied from dashboard for consistency)
+.theme-toggle-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 20px;
+  background-color: var(--theme-toggle-bg-color, #e0e0e0);
+  transition: background-color 0.3s ease;
+  z-index: 10; // Asegura que esté por encima de otros elementos
+}
+
+.theme-icon {
+  color: var(--theme-toggle-icon-color, #757575);
+  transition: color 0.3s ease, transform 0.3s ease;
+
+  &.active {
+    color: var(--theme-toggle-icon-active-color, #3f51b5);
+    transform: scale(1.1);
   }
 }
