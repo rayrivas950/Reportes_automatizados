@@ -19,6 +19,7 @@ import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion } from 
 import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog/conflict-resolution-dialog.component';
 import { OperationsFormComponent } from '../operations-form/operations-form.component';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
+import { ReportesModalComponent } from '../reportes-modal/reportes-modal.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -35,7 +36,8 @@ import { FileUploadComponent } from '../file-upload/file-upload.component';
     MatSlideToggleModule,
     MatTooltipModule,
     OperationsFormComponent,
-    FileUploadComponent
+    FileUploadComponent,
+    ReportesModalComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
@@ -155,6 +157,16 @@ export class DashboardComponent implements OnInit {
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
+  }
+
+  openReportesModal(): void {
+    this.dialog.open(ReportesModalComponent, {
+      width: '95vw',
+      height: '90vh',
+      maxWidth: '100vw',
+      panelClass: 'reportes-modal-panel',
+      autoFocus: false
+    });
   }
 
   logout(): void {

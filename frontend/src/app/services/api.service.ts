@@ -134,6 +134,43 @@ export class ApiService {
         formData.append('file', file);
         return this.http.post<UploadResponse>(`${this.API_URL}/upload/unified/`, formData);
     }
+
+    // --- Reportes ---
+    getReporteBalance(filtros: FiltrosReporte): Observable<BalanceResponse> {
+        let params = new HttpParams();
+        if (filtros.fecha_inicio) params = params.set('fecha_inicio', filtros.fecha_inicio);
+        if (filtros.fecha_fin) params = params.set('fecha_fin', filtros.fecha_fin);
+        if (filtros.cliente_id) params = params.set('cliente_id', filtros.cliente_id.join(','));
+        if (filtros.proveedor_id) params = params.set('proveedor_id', filtros.proveedor_id.join(','));
+        if (filtros.producto_id) params = params.set('producto_id', filtros.producto_id.join(','));
+
+        return this.http.get<BalanceResponse>(`${this.API_URL}/reportes/balance/`, { params });
+    }
+
+    getReporteTransacciones(filtros: FiltrosReporte, page: number = 1): Observable<PaginatedTransacciones> {
+        let params = new HttpParams().set('page', page.toString());
+        if (filtros.fecha_inicio) params = params.set('fecha_inicio', filtros.fecha_inicio);
+        if (filtros.fecha_fin) params = params.set('fecha_fin', filtros.fecha_fin);
+        if (filtros.cliente_id) params = params.set('cliente_id', filtros.cliente_id.join(','));
+        if (filtros.proveedor_id) params = params.set('proveedor_id', filtros.proveedor_id.join(','));
+        if (filtros.producto_id) params = params.set('producto_id', filtros.producto_id.join(','));
+
+        return this.http.get<PaginatedTransacciones>(`${this.API_URL}/reportes/transacciones/`, { params });
+    }
+
+    exportarReporteExcel(filtros: FiltrosReporte): Observable<Blob> {
+        let params = new HttpParams();
+        if (filtros.fecha_inicio) params = params.set('fecha_inicio', filtros.fecha_inicio);
+        if (filtros.fecha_fin) params = params.set('fecha_fin', filtros.fecha_fin);
+        if (filtros.cliente_id) params = params.set('cliente_id', filtros.cliente_id.join(','));
+        if (filtros.proveedor_id) params = params.set('proveedor_id', filtros.proveedor_id.join(','));
+        if (filtros.producto_id) params = params.set('producto_id', filtros.producto_id.join(','));
+
+        return this.http.get(`${this.API_URL}/reportes/exportar_excel/`, {
+            params,
+            responseType: 'blob'
+        });
+    }
 }
 
 // Interfaces para upload
@@ -148,3 +185,39 @@ export interface UploadResponse {
     errores_filas?: UploadErrorDetail[];
     error?: string; // Para errores generales 400
 }
+
+// Interfaces para Reportes
+export interface FiltrosReporte {
+    fecha_inicio?: string;
+    fecha_fin?: string;
+    cliente_id?: number[];
+    proveedor_id?: number[];
+    producto_id?: number[];
+}
+
+export interface BalanceResponse {
+    total_ventas: number;
+    total_compras: number;
+    utilidad_bruta: number;
+    cantidad_ventas: number;
+    cantidad_compras: number;
+}
+
+export interface TransaccionReporte {
+    id: number;
+    fecha: string;
+    tipo: 'VENTA' | 'COMPRA';
+    entidad: string;
+    prod_nombre: string;
+    cantidad: number;
+    precio: number;
+    total: number;
+}
+
+export interface PaginatedTransacciones {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: TransaccionReporte[];
+}
+
