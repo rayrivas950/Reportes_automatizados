@@ -2,24 +2,6 @@
     <h2>Carga de Archivos Excel</h2>
     <p class="subtitle">Importa datos de ventas y compras desde archivos Excel</p>
 
-    <!-- Selector de Tipo de Archivo -->
-    <div class="type-selector-section" *ngIf="!uploadResult && !isUploading">
-        <h3>Selecciona el tipo de datos a cargar:</h3>
-        <mat-radio-group [(ngModel)]="uploadType" class="type-radio-group">
-            <mat-radio-button value="ventas" color="primary">Ventas</mat-radio-button>
-            <mat-radio-button value="compras" color="primary">Compras</mat-radio-button>
-        </mat-radio-group>
-    </div>
-
-    <!-- Botón para descargar plantilla -->
-    <div class="template-section">
-        <button mat-raised-button color="primary" (click)="downloadTemplate()">
-            <mat-icon>download</mat-icon>
-            Descargar Plantilla
-        </button>
-        <p class="help-text">Descarga la plantilla para asegurar el formato correcto</p>
-    </div>
-
     <!-- Drop zone -->
     <div class="drop-zone" [class.dragging]="isDragging" [class.has-file]="selectedFile" (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" *ngIf="!uploadResult">
@@ -27,7 +9,7 @@
         <mat-icon class="upload-icon">cloud_upload</mat-icon>
 
         <div class="drop-zone-text" *ngIf="!selectedFile">
-            <h3>Arrastra tu archivo de {{ uploadType | titlecase }} aquí</h3>
+            <h3>Arrastra tu archivo Excel aquí</h3>
             <p>o</p>
             <label for="file-input" class="file-input-label">
                 <button mat-raised-button color="accent">

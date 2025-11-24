@@ -57,7 +57,7 @@ def validar_y_normalizar_columnas(df_original, mapeo_columnas):
     return df_procesado, None
 
 
-class VentaUploadView(APIView):
+class BaseUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [IsAuthenticated, IsGerenteOrEmpleado]
 
@@ -67,96 +67,6 @@ class VentaUploadView(APIView):
         "cantidad": ["cantidad", "unidades"],
         "precio_venta": ["precio", "precio_venta", "precio unitario", "valor"],
     }
-
-    def post(self, request, *args, **kwargs):
-        archivo = request.FILES.get("file")
-        if not archivo:
-            return Response(
-                {"error": "No se ha subido ningún archivo."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if not archivo.name.endswith((".xlsx", ".xls")):
-            return Response(
-                {"error": "Formato de archivo no válido."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            # Rellenar celdas vacías con strings vacíos para evitar NaN de pandas
-            df_original = pd.read_excel(archivo).fillna("")
-
-            df_normalizado, error = validar_y_normalizar_columnas(
-                df_original, self.MAPEO_COLUMNAS_VENTA
-            )
-            if error:
-                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
-
-            ventas_a_crear = []
-            filas_con_errores = []
-
-            for index, row_normalizada in df_normalizado.iterrows():
-                datos_fila_original_excel = df_original.iloc[index].to_dict()
-
-                serializer_data = row_normalizada.to_dict()
-                serializer = VentaImportadaSerializer(data=serializer_data)
-
-                if serializer.is_valid():
-                    venta_importada = VentaImportada(
-                        importado_por=request.user,
-                        datos_fila_original=datos_fila_original_excel,
-                        estado=VentaImportada.Estados.PENDIENTE,
-                        producto_nombre=serializer.validated_data.get("producto"),
-                        cliente_nombre=serializer.validated_data.get("cliente"),
-                        cantidad=str(serializer.validated_data.get("cantidad")),
-                        precio_venta=str(serializer.validated_data.get("precio_venta")),
-                    )
-                    ventas_a_crear.append(venta_importada)
-                else:
-                    filas_con_errores.append(
-                        {
-                            "fila_excel": index + 2,
-                            "datos_originales": datos_fila_original_excel,
-                            "errores": serializer.errors,
-                        }
-                    )
-                    venta_importada = VentaImportada(
-                        importado_por=request.user,
-                        datos_fila_original=datos_fila_original_excel,
-                        detalles_conflicto=serializer.errors,
-                        estado=VentaImportada.Estados.CONFLICTO,
-                        producto_nombre=row_normalizada.get("producto"),
-                        cliente_nombre=row_normalizada.get("cliente"),
-                        cantidad=str(row_normalizada.get("cantidad", "")),
-                        precio_venta=str(row_normalizada.get("precio_venta", "")),
-                    )
-                    ventas_a_crear.append(venta_importada)
-
-            VentaImportada.objects.bulk_create(ventas_a_crear)
-
-            if filas_con_errores:
-                mensaje_respuesta = f"Archivo procesado. {len(ventas_a_crear) - len(filas_con_errores)} ventas puestas en cola. {len(filas_con_errores)} filas con errores de validación."
-                return Response(
-                    {"mensaje": mensaje_respuesta, "errores_filas": filas_con_errores},
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                return Response(
-                    {
-                        "mensaje": f"Archivo recibido. Se han puesto en cola {len(ventas_a_crear)} ventas para su revisión."
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
-
-        except Exception as e:
-            return Response(
-                {"error": f"Error al procesar el archivo: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-
-class CompraUploadView(APIView):
-    parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [IsAuthenticated, IsGerenteOrEmpleado]
 
     MAPEO_COLUMNAS_COMPRA = {
         "producto": ["producto", "nombre producto"],
@@ -171,89 +81,227 @@ class CompraUploadView(APIView):
         ],
     }
 
+    def procesar_ventas(self, df, user):
+        df_normalizado, error = validar_y_normalizar_columnas(
+            df, self.MAPEO_COLUMNAS_VENTA
+        )
+        if error:
+            return None, [], error
+
+        ventas_a_crear = []
+        filas_con_errores = []
+
+        for index, row_normalizada in df_normalizado.iterrows():
+            datos_fila_original_excel = df.iloc[index].to_dict()
+            serializer_data = row_normalizada.to_dict()
+            serializer = VentaImportadaSerializer(data=serializer_data)
+
+            if serializer.is_valid():
+                venta_importada = VentaImportada(
+                    importado_por=user,
+                    datos_fila_original=datos_fila_original_excel,
+                    estado=VentaImportada.Estados.PENDIENTE,
+                    producto_nombre=serializer.validated_data.get("producto"),
+                    cliente_nombre=serializer.validated_data.get("cliente"),
+                    cantidad=str(serializer.validated_data.get("cantidad")),
+                    precio_venta=str(serializer.validated_data.get("precio_venta")),
+                )
+                ventas_a_crear.append(venta_importada)
+            else:
+                filas_con_errores.append(
+                    {
+                        "fila_excel": index + 2,
+                        "datos_originales": datos_fila_original_excel,
+                        "errores": serializer.errors,
+                    }
+                )
+                venta_importada = VentaImportada(
+                    importado_por=user,
+                    datos_fila_original=datos_fila_original_excel,
+                    detalles_conflicto=serializer.errors,
+                    estado=VentaImportada.Estados.CONFLICTO,
+                    producto_nombre=row_normalizada.get("producto"),
+                    cliente_nombre=row_normalizada.get("cliente"),
+                    cantidad=str(row_normalizada.get("cantidad", "")),
+                    precio_venta=str(row_normalizada.get("precio_venta", "")),
+                )
+                ventas_a_crear.append(venta_importada)
+
+        VentaImportada.objects.bulk_create(ventas_a_crear)
+        return ventas_a_crear, filas_con_errores, None
+
+    def procesar_compras(self, df, user):
+        df_normalizado, error = validar_y_normalizar_columnas(
+            df, self.MAPEO_COLUMNAS_COMPRA
+        )
+        if error:
+            return None, [], error
+
+        compras_a_crear = []
+        filas_con_errores = []
+
+        for index, row_normalizada in df_normalizado.iterrows():
+            datos_fila_original_excel = df.iloc[index].to_dict()
+            serializer = CompraImportadaSerializer(data=row_normalizada.to_dict())
+
+            if serializer.is_valid():
+                compra_importada = CompraImportada(
+                    importado_por=user,
+                    datos_fila_original=datos_fila_original_excel,
+                    estado=CompraImportada.Estados.PENDIENTE,
+                    producto_nombre=serializer.validated_data.get("producto"),
+                    proveedor_nombre=serializer.validated_data.get("proveedor"),
+                    cantidad=str(serializer.validated_data.get("cantidad")),
+                    precio_compra_unitario=str(
+                        serializer.validated_data.get("precio_compra_unitario")
+                    ),
+                )
+                compras_a_crear.append(compra_importada)
+            else:
+                filas_con_errores.append(
+                    {
+                        "fila_excel": index + 2,
+                        "datos_originales": datos_fila_original_excel,
+                        "errores": serializer.errors,
+                    }
+                )
+                compra_importada = CompraImportada(
+                    importado_por=user,
+                    datos_fila_original=datos_fila_original_excel,
+                    detalles_conflicto=serializer.errors,
+                    estado=CompraImportada.Estados.CONFLICTO,
+                    producto_nombre=row_normalizada.get("producto"),
+                    proveedor_nombre=row_normalizada.get("proveedor"),
+                    cantidad=str(row_normalizada.get("cantidad", "")),
+                    precio_compra_unitario=str(
+                        row_normalizada.get("precio_compra_unitario", "")
+                    ),
+                )
+                compras_a_crear.append(compra_importada)
+
+        CompraImportada.objects.bulk_create(compras_a_crear)
+        return compras_a_crear, filas_con_errores, None
+
+
+class VentaUploadView(BaseUploadView):
     def post(self, request, *args, **kwargs):
         archivo = request.FILES.get("file")
         if not archivo:
-            return Response(
-                {"error": "No se ha subido ningún archivo."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if not archivo.name.endswith((".xlsx", ".xls")):
-            return Response(
-                {"error": "Formato de archivo no válido."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "No se ha subido ningún archivo."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            df = pd.read_excel(archivo).fillna("")
+            creados, errores, error_msg = self.procesar_ventas(df, request.user)
+            
+            if error_msg:
+                return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
+                
+            mensaje = f"Archivo procesado. {len(creados) - len(errores)} ventas en cola. {len(errores)} errores."
+            return Response({"mensaje": mensaje, "errores_filas": errores}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CompraUploadView(BaseUploadView):
+    def post(self, request, *args, **kwargs):
+        archivo = request.FILES.get("file")
+        if not archivo:
+            return Response({"error": "No se ha subido ningún archivo."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            df = pd.read_excel(archivo).fillna("")
+            creados, errores, error_msg = self.procesar_compras(df, request.user)
+            
+            if error_msg:
+                return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
+                
+            mensaje = f"Archivo procesado. {len(creados) - len(errores)} compras en cola. {len(errores)} errores."
+            return Response({"mensaje": mensaje, "errores_filas": errores}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UnifiedUploadView(BaseUploadView):
+    def post(self, request, *args, **kwargs):
+        archivo = request.FILES.get("file")
+        if not archivo:
+            return Response({"error": "No se ha subido ningún archivo."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            df_original = pd.read_excel(archivo).fillna("")
+            # Leer todas las hojas del Excel
+            xls = pd.ExcelFile(archivo)
+            sheet_names = [name.lower() for name in xls.sheet_names]
+            
+            resultados = {
+                "ventas": {"creados": 0, "errores": 0, "detalles": []},
+                "compras": {"creados": 0, "errores": 0, "detalles": []}
+            }
+            
+            procesado_algo = False
 
-            df_normalizado, error = validar_y_normalizar_columnas(
-                df_original, self.MAPEO_COLUMNAS_COMPRA
+            # Estrategia 1: Buscar hojas por nombre
+            if "ventas" in sheet_names:
+                df = pd.read_excel(archivo, sheet_name=xls.sheet_names[sheet_names.index("ventas")]).fillna("")
+                creados, errores, error_msg = self.procesar_ventas(df, request.user)
+                if not error_msg:
+                    resultados["ventas"]["creados"] = len(creados) - len(errores)
+                    resultados["ventas"]["errores"] = len(errores)
+                    resultados["ventas"]["detalles"] = errores
+                    procesado_algo = True
+
+            if "compras" in sheet_names:
+                df = pd.read_excel(archivo, sheet_name=xls.sheet_names[sheet_names.index("compras")]).fillna("")
+                creados, errores, error_msg = self.procesar_compras(df, request.user)
+                if not error_msg:
+                    resultados["compras"]["creados"] = len(creados) - len(errores)
+                    resultados["compras"]["errores"] = len(errores)
+                    resultados["compras"]["detalles"] = errores
+                    procesado_algo = True
+            
+            # Estrategia 2: Si no hay hojas específicas, intentar adivinar por columnas en la primera hoja
+            if not procesado_algo:
+                df = pd.read_excel(archivo).fillna("")
+                cols = [c.lower() for c in df.columns]
+                
+                # Si tiene 'cliente', asumimos ventas
+                if any(c in cols for c in ["cliente", "nombre cliente"]):
+                    creados, errores, error_msg = self.procesar_ventas(df, request.user)
+                    if not error_msg:
+                        resultados["ventas"]["creados"] = len(creados) - len(errores)
+                        resultados["ventas"]["errores"] = len(errores)
+                        resultados["ventas"]["detalles"] = errores
+                        procesado_algo = True
+                
+                # Si tiene 'proveedor', asumimos compras (puede ser el mismo archivo si tiene ambas columnas, poco probable pero posible)
+                elif any(c in cols for c in ["proveedor", "nombre proveedor"]):
+                    creados, errores, error_msg = self.procesar_compras(df, request.user)
+                    if not error_msg:
+                        resultados["compras"]["creados"] = len(creados) - len(errores)
+                        resultados["compras"]["errores"] = len(errores)
+                        resultados["compras"]["detalles"] = errores
+                        procesado_algo = True
+
+            if not procesado_algo:
+                return Response(
+                    {"error": "No se pudo detectar el tipo de archivo. Asegúrese de usar hojas llamadas 'Ventas'/'Compras' o incluir columnas 'Cliente'/'Proveedor'."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Construir mensaje final
+            total_creados = resultados["ventas"]["creados"] + resultados["compras"]["creados"]
+            total_errores = resultados["ventas"]["errores"] + resultados["compras"]["errores"]
+            todos_errores = resultados["ventas"]["detalles"] + resultados["compras"]["detalles"]
+            
+            mensaje = f"Procesamiento completado. Total registros: {total_creados}. Total errores: {total_errores}."
+            if resultados["ventas"]["creados"] > 0:
+                mensaje += f" (Ventas: {resultados['ventas']['creados']})"
+            if resultados["compras"]["creados"] > 0:
+                mensaje += f" (Compras: {resultados['compras']['creados']})"
+
+            return Response(
+                {"mensaje": mensaje, "errores_filas": todos_errores},
+                status=status.HTTP_200_OK
             )
-            if error:
-                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
-
-            compras_a_crear = []
-            filas_con_errores = []
-
-            for index, row_normalizada in df_normalizado.iterrows():
-                datos_fila_original_excel = df_original.iloc[index].to_dict()
-
-                serializer = CompraImportadaSerializer(data=row_normalizada.to_dict())
-
-                if serializer.is_valid():
-                    compra_importada = CompraImportada(
-                        importado_por=request.user,
-                        datos_fila_original=datos_fila_original_excel,
-                        estado=CompraImportada.Estados.PENDIENTE,
-                        producto_nombre=serializer.validated_data.get("producto"),
-                        proveedor_nombre=serializer.validated_data.get("proveedor"),
-                        cantidad=str(serializer.validated_data.get("cantidad")),
-                        precio_compra_unitario=str(
-                            serializer.validated_data.get("precio_compra_unitario")
-                        ),
-                    )
-                    compras_a_crear.append(compra_importada)
-                else:
-                    filas_con_errores.append(
-                        {
-                            "fila_excel": index + 2,
-                            "datos_originales": datos_fila_original_excel,
-                            "errores": serializer.errors,
-                        }
-                    )
-                    compra_importada = CompraImportada(
-                        importado_por=request.user,
-                        datos_fila_original=datos_fila_original_excel,
-                        detalles_conflicto=serializer.errors,
-                        estado=CompraImportada.Estados.CONFLICTO,
-                        producto_nombre=row_normalizada.get("producto"),
-                        proveedor_nombre=row_normalizada.get("proveedor"),
-                        cantidad=str(row_normalizada.get("cantidad", "")),
-                        precio_compra_unitario=str(
-                            row_normalizada.get("precio_compra_unitario", "")
-                        ),
-                    )
-                    compras_a_crear.append(compra_importada)
-
-            CompraImportada.objects.bulk_create(compras_a_crear)
-
-            if filas_con_errores:
-                mensaje_respuesta = f"Archivo procesado. {len(compras_a_crear) - len(filas_con_errores)} compras puestas en cola. {len(filas_con_errores)} filas con errores de validación."
-                return Response(
-                    {"mensaje": mensaje_respuesta, "errores_filas": filas_con_errores},
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                return Response(
-                    {
-                        "mensaje": f"Archivo recibido. Se han puesto en cola {len(compras_a_crear)} compras para su revisión."
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
 
         except Exception as e:
-            return Response(
-                {"error": f"Error al procesar el archivo: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

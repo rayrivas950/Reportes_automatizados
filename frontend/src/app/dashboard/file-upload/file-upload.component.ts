@@ -21,7 +21,6 @@ import { ApiService, UploadResponse, UploadErrorDetail } from '../../services/ap
         MatButtonModule,
         MatIconModule,
         MatSnackBarModule,
-        MatRadioModule,
         FormsModule
     ],
     templateUrl: './file-upload.component.html',
@@ -42,7 +41,6 @@ export class FileUploadComponent {
     uploadProgress = 0;
     selectedFile: File | null = null;
     uploadResult: UploadResponse | null = null;
-    uploadType: 'ventas' | 'compras' = 'ventas'; // Tipo por defecto
 
     // Columnas para tabla de errores
     errorColumns: string[] = ['fila', 'errores', 'datos'];
@@ -135,7 +133,7 @@ export class FileUploadComponent {
         this.isUploading = true;
         this.uploadProgress = 0;
 
-        this.apiService.uploadFile(this.uploadType, this.selectedFile).subscribe({
+        this.apiService.uploadFile(this.selectedFile).subscribe({
             next: (response: UploadResponse) => {
                 this.uploadProgress = 100;
                 this.isUploading = false;

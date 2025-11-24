@@ -14,10 +14,11 @@ from .views import (
 )
 
 # Vistas personalizadas para acciones específicas
-from .views_uploads import VentaUploadView, CompraUploadView
+from .views_uploads import VentaUploadView, CompraUploadView, UnifiedUploadView
 
 # Nuevas vistas para la conciliación
 from .views_reconciliation import VentaImportadaViewSet, CompraImportadaViewSet
+from .views_reports import ReporteViewSet
 
 # Creamos un router y registramos nuestros viewsets con él.
 router = DefaultRouter()
@@ -27,6 +28,7 @@ router.register(r"productos", ProductoViewSet)
 router.register(r"compras", CompraViewSet)
 router.register(r"ventas", VentaViewSet)
 router.register(r"reportes/summary", ReporteSummary, basename="reporte-summary")
+router.register(r"reportes", ReporteViewSet, basename="reportes")
 
 # Registramos los nuevos ViewSets para la conciliación
 router.register(r"ventas-importadas", VentaImportadaViewSet)
@@ -41,6 +43,7 @@ urlpatterns = [
     path("auth/registro/", UserRegistrationView.as_view(), name="user-register"),
     path("ventas/upload/", VentaUploadView.as_view(), name="venta-upload"),
     path("compras/upload/", CompraUploadView.as_view(), name="compra-upload"),
+    path("upload/unified/", UnifiedUploadView.as_view(), name="unified-upload"),
     # Las rutas del router son más generales y se comprueban al final.
     path("", include(router.urls)),
 ]

@@ -28,7 +28,6 @@ import { FileUploadComponent } from '../file-upload/file-upload.component';
     MatTableModule,
     MatDialogModule,
     MatProgressSpinnerModule,
-    ConflictResolutionDialogComponent,
     OperationsFormComponent,
     FileUploadComponent
   ],
