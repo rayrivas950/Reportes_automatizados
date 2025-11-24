@@ -8,9 +8,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Observable } from 'rxjs';
 
 import { AuthService } from '../../auth/services/auth.service';
 import { ApiService } from '../../services/api.service';
+import { ThemeService, Theme } from '../../services/theme.service';
 import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion } from '../../interfaces/api-models';
 import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog/conflict-resolution-dialog.component';
 import { OperationsFormComponent } from '../operations-form/operations-form.component';
@@ -28,6 +32,8 @@ import { FileUploadComponent } from '../file-upload/file-upload.component';
     MatTableModule,
     MatDialogModule,
     MatProgressSpinnerModule,
+    MatSlideToggleModule,
+    MatTooltipModule,
     OperationsFormComponent,
     FileUploadComponent
   ],
@@ -42,14 +48,28 @@ export class DashboardComponent implements OnInit {
   username: string = '';
   isGerente = false;
 
+  // Tema
+  currentTheme$: Observable<Theme>;
+  isDarkTheme = false;
+
   displayedColumnsConflictos: string[] = ['tipo', 'id_borrado', 'id_existente', 'estado', 'fecha', 'acciones'];
 
   constructor(
     private authService: AuthService,
     private apiService: ApiService,
     private router: Router,
-    private dialog: MatDialog
-  ) { }
+    private dialog: MatDialog,
+    private themeService: ThemeService
+  ) {
+    // Suscribirse al tema actual
+    this.currentTheme$ = this.themeService.currentTheme$;
+    this.isDarkTheme = this.themeService.isDarkTheme();
+
+    // Actualizar isDarkTheme cuando cambie el tema
+    this.currentTheme$.subscribe(theme => {
+      this.isDarkTheme = theme === 'dark';
+    });
+  }
 
   ngOnInit(): void {
     // Iniciar temporizador del Splash Screen
@@ -131,6 +151,10 @@ export class DashboardComponent implements OnInit {
         });
       }
     });
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
   }
 
   logout(): void {

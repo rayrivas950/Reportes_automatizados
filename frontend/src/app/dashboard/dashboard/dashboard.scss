@@ -5,11 +5,12 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999; // Asegurar que esté por encima de todo
+  transition: background-color 0.3s ease;
 }
 
 .r-logo {
@@ -62,7 +63,8 @@
   h1 {
     margin: 0;
     font-size: 24px;
-    color: #333;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
   }
 
   .user-controls {
@@ -72,17 +74,69 @@
 
     .username {
       font-weight: 500;
-      color: #555;
+      color: var(--text-secondary);
+      transition: color 0.3s ease;
+    }
+
+    .theme-toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background-color: var(--bg-secondary);
+      border-radius: 24px;
+      transition: background-color 0.3s ease;
+
+      .theme-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: var(--text-disabled);
+        transition: all 0.3s ease;
+
+        &.active {
+          color: var(--text-primary);
+          transform: scale(1.2);
+        }
+
+        &.sun-icon.active {
+          color: #ffa726;
+          filter: drop-shadow(0 0 4px rgba(255, 167, 38, 0.5));
+        }
+
+        &.moon-icon.active {
+          color: #42a5f5;
+          filter: drop-shadow(0 0 4px rgba(66, 165, 245, 0.5));
+        }
+      }
+
+      .theme-toggle {
+        ::ng-deep .mdc-switch {
+          width: 36px;
+          height: 20px;
+        }
+
+        ::ng-deep .mdc-switch__track {
+          height: 14px;
+          border-radius: 7px;
+        }
+
+        ::ng-deep .mdc-switch__handle {
+          width: 18px;
+          height: 18px;
+        }
+      }
     }
   }
 }
 
 .tab-content {
   padding: 20px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-top: none;
   min-height: 300px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .loading-spinner {
@@ -100,25 +154,31 @@
 
 .summary-card {
   padding: 20px;
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 
   &.sales-card {
-    border-left: 5px solid #4caf50;
+    border-left: 5px solid var(--success-color);
   }
 
   &.purchases-card {
-    border-left: 5px solid #f44336;
+    border-left: 5px solid var(--error-color);
   }
 
   mat-card-title {
     font-size: 18px;
-    color: #666;
+    color: var(--text-secondary);
   }
 
   .amount {
     font-size: 32px;
     font-weight: bold;
     margin: 10px 0 0;
-    color: #333;
+    color: var(--text-primary);
   }
 }
 

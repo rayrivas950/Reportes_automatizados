@@ -13,6 +13,16 @@
     <h1>Reportes Automatizados</h1>
     <div class="user-controls">
       <span class="username">Hola, {{ username }}</span>
+
+      <!-- Theme Toggle Switch -->
+      <div class="theme-toggle-container">
+        <mat-icon class="theme-icon sun-icon" [class.active]="!isDarkTheme">light_mode</mat-icon>
+        <mat-slide-toggle [checked]="isDarkTheme" (change)="toggleTheme()" color="primary" class="theme-toggle"
+          matTooltip="Cambiar tema" matTooltipPosition="below">
+        </mat-slide-toggle>
+        <mat-icon class="theme-icon moon-icon" [class.active]="isDarkTheme">dark_mode</mat-icon>
+      </div>
+
       <button mat-raised-button color="warn" (click)="logout()">
         <mat-icon>logout</mat-icon> Cerrar Sesión
       </button>

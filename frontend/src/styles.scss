@@ -1,1 +1,186 @@
 /* You can add global styles to this file, and also import other style files */
+
+// ============================================================================
+// CONFIGURACIÓN DE TEMAS - Angular Material
+// ============================================================================
+
+// Aplicar tema claro por defecto al body
+.light-theme {
+    // Variables CSS personalizadas para tema claro
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e0e0e0;
+    --text-primary: rgba(0, 0, 0, 0.87);
+    --text-secondary: rgba(0, 0, 0, 0.60);
+    --text-disabled: rgba(0, 0, 0, 0.38);
+    --border-color: rgba(0, 0, 0, 0.12);
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --success-color: #4caf50;
+    --error-color: #f44336;
+    --warning-color: #ff9800;
+    --info-color: #2196f3;
+}
+
+// Tema oscuro
+.dark-theme {
+    // Variables CSS personalizadas para tema oscuro
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #2d2d2d;
+    --text-primary: rgba(255, 255, 255, 0.87);
+    --text-secondary: rgba(255, 255, 255, 0.60);
+    --text-disabled: rgba(255, 255, 255, 0.38);
+    --border-color: rgba(255, 255, 255, 0.12);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --success-color: #66bb6a;
+    --error-color: #ef5350;
+    --warning-color: #ffa726;
+    --info-color: #42a5f5;
+
+    // Sobrescribir colores de Material para tema oscuro
+    --mdc-theme-surface: #1e1e1e;
+    --mdc-theme-background: #121212;
+    --mdc-theme-on-surface: rgba(255, 255, 255, 0.87);
+    --mat-app-background-color: #121212;
+    --mat-app-text-color: rgba(255, 255, 255, 0.87);
+}
+
+// ============================================================================
+// ESTILOS GLOBALES
+// ============================================================================
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Smooth transitions para cambios de tema
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+// Estilos para scrollbar personalizado
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+
+    &:hover {
+        background: var(--border-color);
+    }
+}
+
+// Clases de utilidad
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.text-error {
+    color: var(--error-color) !important;
+}
+
+.text-warning {
+    color: var(--warning-color) !important;
+}
+
+.text-info {
+    color: var(--info-color) !important;
+}
+
+.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.bg-error {
+    background-color: var(--error-color) !important;
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+}
+
+.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+// ============================================================================
+// SOBRESCRITURAS PARA MATERIAL COMPONENTS EN TEMA OSCURO
+// ============================================================================
+
+.dark-theme {
+
+    // Cards
+    .mat-mdc-card {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    // Tabs
+    .mat-mdc-tab-group {
+        background-color: var(--bg-primary);
+    }
+
+    .mat-mdc-tab {
+        color: var(--text-secondary);
+
+        &.mdc-tab--active {
+            color: var(--text-primary);
+        }
+    }
+
+    // Tables
+    .mat-mdc-table {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .mat-mdc-header-cell {
+        color: var(--text-primary);
+    }
+
+    .mat-mdc-cell {
+        color: var(--text-primary);
+    }
+
+    // Buttons
+    .mat-mdc-raised-button {
+        &:not([color]) {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+    }
+
+    // Form fields
+    .mat-mdc-form-field {
+        color: var(--text-primary);
+    }
+
+    // Dialogs
+    .mat-mdc-dialog-container {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+}
