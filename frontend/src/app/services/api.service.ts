@@ -193,6 +193,8 @@ export interface FiltrosReporte {
     cliente_id?: number[];
     proveedor_id?: number[];
     producto_id?: number[];
+    ruc?: string;
+    factura?: string;
 }
 
 export interface BalanceResponse {

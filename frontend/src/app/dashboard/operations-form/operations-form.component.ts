@@ -79,12 +79,14 @@ export class OperationsFormComponent implements OnInit {
             producto: ['', Validators.required],
             proveedor: ['', Validators.required],
             cantidad: [1, [Validators.required, Validators.min(1)]],
-            precio_compra_unitario: [0, [Validators.required, Validators.min(0.01)]]
+            precio_compra_unitario: [0, [Validators.required, Validators.min(0.01)]],
+            factura: ['']
         });
 
         // Formulario para nuevo cliente
         this.nuevoClienteForm = this.fb.group({
             nombre: ['', Validators.required],
+            ruc: ['', [Validators.pattern(/^\d{11}$/)]],
             email: ['', Validators.email],
             telefono: [''],
             direccion: ['']
@@ -93,6 +95,7 @@ export class OperationsFormComponent implements OnInit {
         // Formulario para nuevo proveedor
         this.nuevoProveedorForm = this.fb.group({
             nombre: ['', Validators.required],  // Nombre de empresa
+            ruc: ['', [Validators.pattern(/^\d{11}$/)]],
             persona_contacto: [''],
             email: ['', Validators.email],
             telefono: ['']

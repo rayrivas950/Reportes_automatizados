@@ -397,6 +397,10 @@
                         <span class="detail-value">{{element.total | currency}}</span>
                       </div>
                       <div class="detail-item">
+                        <span class="detail-label">Factura:</span>
+                        <span class="detail-value">{{element.factura || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
                         <span class="detail-label">Fecha:</span>
                         <span class="detail-value">{{element.fecha | date:'medium'}}</span>
                       </div>
@@ -415,6 +419,10 @@
                       <div class="detail-item">
                         <span class="detail-label">Nombre:</span>
                         <span class="detail-value">{{element.nombre}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">RUC:</span>
+                        <span class="detail-value">{{element.ruc || 'N/A'}}</span>
                       </div>
                       <div class="detail-item">
                         <span class="detail-label">Total Gastado:</span>
@@ -443,6 +451,10 @@
                       <div class="detail-item">
                         <span class="detail-label">Nombre:</span>
                         <span class="detail-value">{{element.nombre}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">RUC:</span>
+                        <span class="detail-value">{{element.ruc || 'N/A'}}</span>
                       </div>
                       <div class="detail-item">
                         <span class="detail-label">Total Comprado:</span>

@@ -284,12 +284,14 @@ export class DashboardComponent implements OnInit {
   applyFilters(): void {
     let filtered = [...this.papeleraItems];
 
-    // Filtro por ID (búsqueda general)
+    // Filtro por ID, Nombre, RUC o Factura
     if (this.searchTerm.trim()) {
       const searchLower = this.searchTerm.trim().toLowerCase();
       filtered = filtered.filter(item =>
         item.id.toString().includes(searchLower) ||
-        item.nombre?.toLowerCase().includes(searchLower)
+        (item.nombre && item.nombre.toLowerCase().includes(searchLower)) ||
+        (item.ruc && item.ruc.toLowerCase().includes(searchLower)) ||
+        (item.factura && item.factura.toLowerCase().includes(searchLower))
       );
     }
 

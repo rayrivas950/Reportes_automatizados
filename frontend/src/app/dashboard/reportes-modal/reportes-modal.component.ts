@@ -92,7 +92,9 @@ export class ReportesModalComponent implements OnInit, OnDestroy {
             fecha_fin: [null],
             cliente_input: [''],
             proveedor_input: [''],
-            producto_input: ['']
+            producto_input: [''],
+            ruc: [''],
+            factura: ['']
         });
 
         // Initialize autocomplete observables
@@ -119,6 +121,8 @@ export class ReportesModalComponent implements OnInit, OnDestroy {
         merge(
             this.filtrosForm.get('fecha_inicio')!.valueChanges,
             this.filtrosForm.get('fecha_fin')!.valueChanges,
+            this.filtrosForm.get('ruc')!.valueChanges,
+            this.filtrosForm.get('factura')!.valueChanges,
             this.reload$
         ).pipe(
             debounceTime(500),
@@ -190,6 +194,8 @@ export class ReportesModalComponent implements OnInit, OnDestroy {
             cliente_id: this.selectedClientes.length > 0 ? this.selectedClientes.map(c => c.id) : undefined,
             proveedor_id: this.selectedProveedores.length > 0 ? this.selectedProveedores.map(p => p.id) : undefined,
             producto_id: this.selectedProductos.length > 0 ? this.selectedProductos.map(p => p.id) : undefined,
+            ruc: formVal.ruc || undefined,
+            factura: formVal.factura || undefined
         };
     }
 

@@ -38,6 +38,14 @@
                                         </mat-form-field>
 
                                         <mat-form-field appearance="fill">
+                                            <mat-label>RUC (11 dígitos)</mat-label>
+                                            <input matInput formControlName="ruc" maxlength="11">
+                                            <mat-error *ngIf="nuevoClienteForm.get('ruc')?.hasError('pattern')">
+                                                Debe tener 11 dígitos numéricos
+                                            </mat-error>
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
                                             <mat-label>Email</mat-label>
                                             <input matInput type="email" formControlName="email">
                                         </mat-form-field>
@@ -153,6 +161,14 @@
                                         </mat-form-field>
 
                                         <mat-form-field appearance="fill">
+                                            <mat-label>RUC (11 dígitos)</mat-label>
+                                            <input matInput formControlName="ruc" maxlength="11">
+                                            <mat-error *ngIf="nuevoProveedorForm.get('ruc')?.hasError('pattern')">
+                                                Debe tener 11 dígitos numéricos
+                                            </mat-error>
+                                        </mat-form-field>
+
+                                        <mat-form-field appearance="fill">
                                             <mat-label>Nombre de Contacto</mat-label>
                                             <input matInput formControlName="persona_contacto">
                                         </mat-form-field>
@@ -222,6 +238,11 @@
                                     <mat-error *ngIf="compraForm.get('precio_compra_unitario')?.hasError('min')">
                                         Precio mínimo es 0.01
                                     </mat-error>
+                                </mat-form-field>
+
+                                <mat-form-field appearance="fill">
+                                    <mat-label>Número de Factura (opcional)</mat-label>
+                                    <input matInput formControlName="factura">
                                 </mat-form-field>
 
                                 <div class="form-actions">
