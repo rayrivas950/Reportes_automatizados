@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +11,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { Observable } from 'rxjs';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
@@ -27,6 +30,7 @@ import { ReportesModalComponent } from '../reportes-modal/reportes-modal.compone
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatTabsModule,
     MatCardModule,
     MatButtonModule,
@@ -36,6 +40,8 @@ import { ReportesModalComponent } from '../reportes-modal/reportes-modal.compone
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    MatInputModule,
+    MatFormFieldModule,
     OperationsFormComponent,
     FileUploadComponent,
     ReportesModalComponent
@@ -67,9 +73,16 @@ export class DashboardComponent implements OnInit {
   // Papelera
   papeleraCategoria: 'productos' | 'ventas' | 'compras' | 'clientes' | 'proveedores' = 'productos';
   papeleraItems: any[] = [];
+  papeleraItemsFiltered: any[] = [];
   papeleraLoading = false;
   expandedPapeleraItem: any = null;
-  displayedColumnsPapelera: string[] = ['expand', 'nombre', 'tipo', 'deleted_at', 'acciones'];
+  displayedColumnsPapelera: string[] = ['expand', 'id', 'nombre', 'tipo', 'deleted_at', 'acciones'];
+
+  // Búsqueda y filtros
+  searchTerm: string = '';
+  showFilters: boolean = false;
+  dateFilterStart: string = '';
+  dateFilterEnd: string = '';
 
   constructor(
     private authService: AuthService,
@@ -196,9 +209,14 @@ export class DashboardComponent implements OnInit {
   loadPapelera(): void {
     this.papeleraLoading = true;
     this.expandedPapeleraItem = null;
+    this.searchTerm = '';
+    this.dateFilterStart = '';
+    this.dateFilterEnd = '';
+    this.showFilters = false;
     this.apiService.getPapelera(this.papeleraCategoria).subscribe({
       next: (data) => {
         this.papeleraItems = data;
+        this.applyFilters();
         this.papeleraLoading = false;
       },
       error: (err) => {
@@ -233,6 +251,55 @@ export class DashboardComponent implements OnInit {
         alert('Error al restaurar el elemento. Por favor, intenta nuevamente.');
       }
     });
+  }
+
+  // Filtros y búsqueda
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+
+  onSearchChange(): void {
+    this.applyFilters();
+  }
+
+  onDateFilterChange(): void {
+    this.applyFilters();
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.dateFilterStart = '';
+    this.dateFilterEnd = '';
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    let filtered = [...this.papeleraItems];
+
+    // Filtro por ID (búsqueda general)
+    if (this.searchTerm.trim()) {
+      const searchLower = this.searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(item =>
+        item.id.toString().includes(searchLower) ||
+        item.nombre?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filtro por fechas (solo para ventas y compras)
+    if ((this.papeleraCategoria === 'ventas' || this.papeleraCategoria === 'compras') &&
+      (this.dateFilterStart || this.dateFilterEnd)) {
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.fecha);
+        const startDate = this.dateFilterStart ? new Date(this.dateFilterStart) : null;
+        const endDate = this.dateFilterEnd ? new Date(this.dateFilterEnd) : null;
+
+        if (startDate && itemDate < startDate) return false;
+        if (endDate && itemDate > endDate) return false;
+        return true;
+      });
+    }
+
+    this.papeleraItemsFiltered = filtered;
   }
 
   logout(): void {

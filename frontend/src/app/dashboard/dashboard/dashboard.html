@@ -177,6 +177,55 @@
           </div>
         </div>
 
+        <!-- Barra de Búsqueda y Filtros -->
+        <div class="search-filter-container">
+          <!-- Búsqueda General por ID -->
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Buscar por ID o Nombre</mat-label>
+            <input matInput [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()" placeholder="Ej: 123">
+            <mat-icon matPrefix>search</mat-icon>
+            <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="searchTerm=''; onSearchChange()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <!-- Botón para expandir filtros -->
+          <button mat-raised-button (click)="toggleFilters()" class="filter-toggle-btn">
+            <mat-icon>{{showFilters ? 'expand_less' : 'expand_more'}}</mat-icon>
+            Filtros Avanzados
+          </button>
+        </div>
+
+        <!-- Panel de Filtros Expandible -->
+        <div class="filters-panel" *ngIf="showFilters" [@detailExpand]="showFilters ? 'expanded' : 'collapsed'">
+          <!-- Filtros para Ventas y Compras (por fecha) -->
+          <div *ngIf="papeleraCategoria === 'ventas' || papeleraCategoria === 'compras'" class="date-filters">
+            <h4>Filtrar por Fecha</h4>
+            <div class="date-filter-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Fecha Inicio</mat-label>
+                <input matInput type="date" [(ngModel)]="dateFilterStart" (ngModelChange)="onDateFilterChange()">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Fecha Fin</mat-label>
+                <input matInput type="date" [(ngModel)]="dateFilterEnd" (ngModelChange)="onDateFilterChange()">
+              </mat-form-field>
+
+              <button mat-raised-button color="warn" (click)="clearFilters()">
+                <mat-icon>clear</mat-icon>
+                Limpiar
+              </button>
+            </div>
+          </div>
+
+          <!-- Mensaje para otras categorías -->
+          <div *ngIf="papeleraCategoria !== 'ventas' && papeleraCategoria !== 'compras'" class="no-filters-message">
+            <mat-icon>info</mat-icon>
+            <p>No hay filtros adicionales disponibles para {{papeleraCategoria}}. Usa la búsqueda por ID o nombre.</p>
+          </div>
+        </div>
+
         <!-- Loading Spinner -->
         <div *ngIf="papeleraLoading" class="loading-container">
           <mat-spinner></mat-spinner>
@@ -184,7 +233,7 @@
 
         <!-- Tabla Expandible -->
         <div *ngIf="!papeleraLoading" class="papelera-table-container">
-          <table mat-table [dataSource]="papeleraItems" multiTemplateDataRows class="papelera-table">
+          <table mat-table [dataSource]="papeleraItemsFiltered" multiTemplateDataRows class="papelera-table">
 
             <!-- Expand Column -->
             <ng-container matColumnDef="expand">
@@ -193,6 +242,14 @@
                 <button mat-icon-button (click)="togglePapeleraItem(element); $event.stopPropagation()">
                   <mat-icon>{{expandedPapeleraItem?.id === element.id ? 'expand_less' : 'expand_more'}}</mat-icon>
                 </button>
+              </td>
+            </ng-container>
+
+            <!-- ID Column -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>ID</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="id-badge">#{{element.id}}</span>
               </td>
             </ng-container>
 
@@ -415,9 +472,10 @@
             <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
           </table>
 
-          <p *ngIf="papeleraItems.length === 0" class="empty-message">
-            <mat-icon>delete_outline</mat-icon>
-            No hay elementos en la papelera de {{papeleraCategoria}}.
+          <p *ngIf="papeleraItemsFiltered.length === 0 && !papeleraLoading" class="empty-message">
+            <mat-icon>{{searchTerm || dateFilterStart || dateFilterEnd ? 'search_off' : 'delete_outline'}}</mat-icon>
+            {{searchTerm || dateFilterStart || dateFilterEnd ? 'No se encontraron resultados con los filtros aplicados.'
+            : 'No hay elementos en la papelera de ' + papeleraCategoria + '.'}}
           </p>
         </div>
       </div>
