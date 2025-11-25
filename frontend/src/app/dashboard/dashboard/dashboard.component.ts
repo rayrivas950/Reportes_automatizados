@@ -11,11 +11,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable } from 'rxjs';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 
 import { AuthService } from '../../auth/services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { ThemeService, Theme } from '../../services/theme.service';
-import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion } from '../../interfaces/api-models';
+import { ReporteSummary, Conflicto, ConflictoEstado, ConflictoResolucion, Producto, Venta, Compra, Cliente, Proveedor } from '../../interfaces/api-models';
 import { ConflictResolutionDialogComponent } from '../conflict-resolution-dialog/conflict-resolution-dialog.component';
 import { OperationsFormComponent } from '../operations-form/operations-form.component';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
@@ -41,6 +42,13 @@ import { ReportesModalComponent } from '../reportes-modal/reportes-modal.compone
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
+  animations: [
+    trigger('detailExpand', [
+      state('collapsed', style({ height: '0px', minHeight: '0', opacity: 0 })),
+      state('expanded', style({ height: '*', opacity: 1 })),
+      transition('expanded <=> collapsed', animate('300ms cubic-bezier(0.4, 0.0, 0.2, 1)'))
+    ])
+  ]
 })
 export class DashboardComponent implements OnInit {
   summary: ReporteSummary | null = null;
@@ -55,6 +63,13 @@ export class DashboardComponent implements OnInit {
   isDarkTheme = false;
 
   displayedColumnsConflictos: string[] = ['tipo', 'id_borrado', 'id_existente', 'estado', 'fecha', 'acciones'];
+
+  // Papelera
+  papeleraCategoria: 'productos' | 'ventas' | 'compras' | 'clientes' | 'proveedores' = 'productos';
+  papeleraItems: any[] = [];
+  papeleraLoading = false;
+  expandedPapeleraItem: any = null;
+  displayedColumnsPapelera: string[] = ['expand', 'nombre', 'tipo', 'deleted_at', 'acciones'];
 
   constructor(
     private authService: AuthService,
@@ -83,6 +98,14 @@ export class DashboardComponent implements OnInit {
     this.loadSummary();
     if (this.isGerente) {
       this.loadConflictos();
+    }
+  }
+
+  onTabChange(index: number): void {
+    // Índice 2 es la pestaña de Papelera (0: Resumen, 1: Operaciones, 2: Carga, 3: Conflictos, 4: Papelera)
+    // Ajustar según el orden real de las pestañas
+    if (index === 4 && this.isGerente) {
+      this.loadPapelera();
     }
   }
 
@@ -166,6 +189,49 @@ export class DashboardComponent implements OnInit {
       maxWidth: '100vw',
       panelClass: 'reportes-modal-panel',
       autoFocus: false
+    });
+  }
+
+  // Papelera methods
+  loadPapelera(): void {
+    this.papeleraLoading = true;
+    this.expandedPapeleraItem = null;
+    this.apiService.getPapelera(this.papeleraCategoria).subscribe({
+      next: (data) => {
+        this.papeleraItems = data;
+        this.papeleraLoading = false;
+      },
+      error: (err) => {
+        console.error('Error loading papelera', err);
+        this.papeleraLoading = false;
+      }
+    });
+  }
+
+  onPapeleraCategoriaChange(categoria: 'productos' | 'ventas' | 'compras' | 'clientes' | 'proveedores'): void {
+    this.papeleraCategoria = categoria;
+    this.loadPapelera();
+  }
+
+  togglePapeleraItem(item: any): void {
+    this.expandedPapeleraItem = this.expandedPapeleraItem?.id === item.id ? null : item;
+  }
+
+  restaurarItem(item: any): void {
+    if (!confirm(`¿Estás seguro de que deseas restaurar este elemento?`)) {
+      return;
+    }
+
+    this.apiService.restaurarItem(this.papeleraCategoria, item.id).subscribe({
+      next: () => {
+        console.log('Item restaurado exitosamente');
+        this.loadPapelera(); // Recargar la lista
+        this.expandedPapeleraItem = null;
+      },
+      error: (err) => {
+        console.error('Error restaurando item', err);
+        alert('Error al restaurar el elemento. Por favor, intenta nuevamente.');
+      }
     });
   }
 

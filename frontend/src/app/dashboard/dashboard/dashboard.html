@@ -33,7 +33,7 @@
     </div>
   </header>
 
-  <mat-tab-group animationDuration="0ms">
+  <mat-tab-group animationDuration="0ms" (selectedIndexChange)="onTabChange($event)">
     <!-- Pestaña Resumen -->
     <mat-tab label="Resumen">
       <div class="tab-content">
@@ -144,11 +144,285 @@
     <!-- Pestaña Papelera (Solo Gerentes) -->
     <mat-tab label="Papelera" *ngIf="isGerente">
       <div class="tab-content">
-        <h3>Papelera de Reciclaje</h3>
-        <p>Elementos eliminados que pueden ser restaurados.</p>
-        <!-- TODO: Tabla de papelera -->
+        <div class="papelera-header">
+          <h3>Papelera de Reciclaje</h3>
+
+          <!-- Selector de Categoría -->
+          <div class="category-selector">
+            <button mat-raised-button [color]="papeleraCategoria === 'productos' ? 'primary' : ''"
+              (click)="onPapeleraCategoriaChange('productos')">
+              <mat-icon>inventory_2</mat-icon>
+              Productos
+            </button>
+            <button mat-raised-button [color]="papeleraCategoria === 'ventas' ? 'primary' : ''"
+              (click)="onPapeleraCategoriaChange('ventas')">
+              <mat-icon>point_of_sale</mat-icon>
+              Ventas
+            </button>
+            <button mat-raised-button [color]="papeleraCategoria === 'compras' ? 'primary' : ''"
+              (click)="onPapeleraCategoriaChange('compras')">
+              <mat-icon>shopping_cart</mat-icon>
+              Compras
+            </button>
+            <button mat-raised-button [color]="papeleraCategoria === 'clientes' ? 'primary' : ''"
+              (click)="onPapeleraCategoriaChange('clientes')">
+              <mat-icon>people</mat-icon>
+              Clientes
+            </button>
+            <button mat-raised-button [color]="papeleraCategoria === 'proveedores' ? 'primary' : ''"
+              (click)="onPapeleraCategoriaChange('proveedores')">
+              <mat-icon>local_shipping</mat-icon>
+              Proveedores
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div *ngIf="papeleraLoading" class="loading-container">
+          <mat-spinner></mat-spinner>
+        </div>
+
+        <!-- Tabla Expandible -->
+        <div *ngIf="!papeleraLoading" class="papelera-table-container">
+          <table mat-table [dataSource]="papeleraItems" multiTemplateDataRows class="papelera-table">
+
+            <!-- Expand Column -->
+            <ng-container matColumnDef="expand">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let element">
+                <button mat-icon-button (click)="togglePapeleraItem(element); $event.stopPropagation()">
+                  <mat-icon>{{expandedPapeleraItem?.id === element.id ? 'expand_less' : 'expand_more'}}</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <!-- Nombre Column -->
+            <ng-container matColumnDef="nombre">
+              <th mat-header-cell *matHeaderCellDef>Nombre</th>
+              <td mat-cell *matCellDef="let element">{{element.nombre}}</td>
+            </ng-container>
+
+            <!-- Tipo Column (solo para productos) -->
+            <ng-container matColumnDef="tipo">
+              <th mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="tipo-badge">{{papeleraCategoria}}</span>
+              </td>
+            </ng-container>
+
+            <!-- Deleted At Column -->
+            <ng-container matColumnDef="deleted_at">
+              <th mat-header-cell *matHeaderCellDef>Fecha Eliminación</th>
+              <td mat-cell *matCellDef="let element">{{element.deleted_at | date:'short'}}</td>
+            </ng-container>
+
+            <!-- Acciones Column -->
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef>Acciones</th>
+              <td mat-cell *matCellDef="let element">
+                <button mat-raised-button color="primary" (click)="restaurarItem(element); $event.stopPropagation()">
+                  <mat-icon>restore</mat-icon>
+                  Restaurar
+                </button>
+              </td>
+            </ng-container>
+
+            <!-- Expanded Content (Card) -->
+            <ng-container matColumnDef="expandedDetail">
+              <td mat-cell *matCellDef="let element" [attr.colspan]="displayedColumnsPapelera.length">
+                <div class="element-detail"
+                  [@detailExpand]="element.id === expandedPapeleraItem?.id ? 'expanded' : 'collapsed'">
+                  <div class="detail-card">
+                    <h4>Detalles Completos</h4>
+
+                    <!-- Productos -->
+                    <div *ngIf="papeleraCategoria === 'productos'" class="detail-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">{{element.id}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Nombre:</span>
+                        <span class="detail-value">{{element.nombre}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Descripción:</span>
+                        <span class="detail-value">{{element.descripcion || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Stock:</span>
+                        <span class="detail-value">{{element.stock}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Precio Compra:</span>
+                        <span class="detail-value">{{element.precio_compra_actual | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Proveedor:</span>
+                        <span class="detail-value">{{element.proveedor_nombre || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Creado por:</span>
+                        <span class="detail-value">{{element.created_by_username || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Fecha creación:</span>
+                        <span class="detail-value">{{element.created_at | date:'medium'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Eliminado:</span>
+                        <span class="detail-value">{{element.deleted_at | date:'medium'}}</span>
+                      </div>
+                    </div>
+
+                    <!-- Ventas -->
+                    <div *ngIf="papeleraCategoria === 'ventas'" class="detail-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">{{element.id}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Producto:</span>
+                        <span class="detail-value">{{element.producto_nombre || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Cliente:</span>
+                        <span class="detail-value">{{element.cliente_nombre || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Cantidad:</span>
+                        <span class="detail-value">{{element.cantidad}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Precio Venta:</span>
+                        <span class="detail-value">{{element.precio_venta | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Total:</span>
+                        <span class="detail-value">{{element.total | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Fecha:</span>
+                        <span class="detail-value">{{element.fecha | date:'medium'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Eliminado:</span>
+                        <span class="detail-value">{{element.deleted_at | date:'medium'}}</span>
+                      </div>
+                    </div>
+
+                    <!-- Compras -->
+                    <div *ngIf="papeleraCategoria === 'compras'" class="detail-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">{{element.id}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Producto:</span>
+                        <span class="detail-value">{{element.producto_nombre || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Proveedor:</span>
+                        <span class="detail-value">{{element.proveedor_nombre || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Cantidad:</span>
+                        <span class="detail-value">{{element.cantidad}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Precio Unitario:</span>
+                        <span class="detail-value">{{element.precio_compra_unitario | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Total:</span>
+                        <span class="detail-value">{{element.total | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Fecha:</span>
+                        <span class="detail-value">{{element.fecha | date:'medium'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Eliminado:</span>
+                        <span class="detail-value">{{element.deleted_at | date:'medium'}}</span>
+                      </div>
+                    </div>
+
+                    <!-- Clientes -->
+                    <div *ngIf="papeleraCategoria === 'clientes'" class="detail-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">{{element.id}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Nombre:</span>
+                        <span class="detail-value">{{element.nombre}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Total Gastado:</span>
+                        <span class="detail-value">{{element.total_gastado | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Creado por:</span>
+                        <span class="detail-value">{{element.created_by_username || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Fecha creación:</span>
+                        <span class="detail-value">{{element.created_at | date:'medium'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Eliminado:</span>
+                        <span class="detail-value">{{element.deleted_at | date:'medium'}}</span>
+                      </div>
+                    </div>
+
+                    <!-- Proveedores -->
+                    <div *ngIf="papeleraCategoria === 'proveedores'" class="detail-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">{{element.id}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Nombre:</span>
+                        <span class="detail-value">{{element.nombre}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Total Comprado:</span>
+                        <span class="detail-value">{{element.total_comprado | currency}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Creado por:</span>
+                        <span class="detail-value">{{element.created_by_username || 'N/A'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Fecha creación:</span>
+                        <span class="detail-value">{{element.created_at | date:'medium'}}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Eliminado:</span>
+                        <span class="detail-value">{{element.deleted_at | date:'medium'}}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Table Rows -->
+            <tr mat-header-row *matHeaderRowDef="displayedColumnsPapelera"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumnsPapelera;" class="element-row"
+              [class.expanded-row]="expandedPapeleraItem?.id === row.id" (click)="togglePapeleraItem(row)">
+            </tr>
+            <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
+          </table>
+
+          <p *ngIf="papeleraItems.length === 0" class="empty-message">
+            <mat-icon>delete_outline</mat-icon>
+            No hay elementos en la papelera de {{papeleraCategoria}}.
+          </p>
+        </div>
       </div>
     </mat-tab>
+
 
   </mat-tab-group>
 </div>

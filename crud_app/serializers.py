@@ -10,6 +10,7 @@ User = get_user_model()
 
 class ProveedorSerializer(serializers.ModelSerializer):
     total_comprado = serializers.SerializerMethodField()
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
 
     class Meta:
         model = Proveedor
@@ -21,6 +22,9 @@ class ProveedorSerializer(serializers.ModelSerializer):
             "telefono",
             "pagina_web",
             "total_comprado",
+            "created_at",
+            "deleted_at",
+            "created_by_username",
         ]
 
     def get_total_comprado(self, obj):
@@ -30,6 +34,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
 
 class ClienteSerializer(serializers.ModelSerializer):
     total_gastado = serializers.SerializerMethodField()
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
 
     class Meta:
         model = Cliente
@@ -41,6 +46,8 @@ class ClienteSerializer(serializers.ModelSerializer):
             "pagina_web",
             "total_gastado",
             "created_at",
+            "deleted_at",
+            "created_by_username",
         ]
 
     def get_total_gastado(self, obj):
@@ -49,18 +56,27 @@ class ClienteSerializer(serializers.ModelSerializer):
 
 
 class ProductoSerializer(serializers.ModelSerializer):
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
     class Meta:
         model = Producto
         fields = "__all__"
 
 
 class CompraSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True)
+
     class Meta:
         model = Compra
         fields = "__all__"
 
 
 class VentaSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
+    cliente_nombre = serializers.CharField(source='cliente.nombre', read_only=True)
+
     class Meta:
         model = Venta
         fields = "__all__"
