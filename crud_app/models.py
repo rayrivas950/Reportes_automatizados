@@ -24,6 +24,13 @@ class Proveedor(models.Model):
         max_length=20, blank=True, null=True, verbose_name="Teléfono"
     )
     pagina_web = models.URLField(blank=True, null=True, verbose_name="Página Web")
+    ruc = models.CharField(
+        max_length=11,
+        blank=True,
+        null=True,
+        verbose_name="RUC",
+        help_text="Registro Único de Contribuyentes (11 dígitos)"
+    )
 
     # Campos de auditoría
     created_at = models.DateTimeField(
@@ -88,6 +95,13 @@ class Cliente(models.Model):
         max_length=20, blank=True, null=True, verbose_name="Teléfono"
     )
     pagina_web = models.URLField(blank=True, null=True, verbose_name="Página Web")
+    ruc = models.CharField(
+        max_length=11,
+        blank=True,
+        null=True,
+        verbose_name="RUC",
+        help_text="Registro Único de Contribuyentes (11 dígitos)"
+    )
 
     # Campos de auditoría
     created_at = models.DateTimeField(
@@ -230,6 +244,13 @@ class Compra(models.Model):
     cantidad = models.PositiveIntegerField(verbose_name="Cantidad Comprada")
     precio_compra_unitario = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Precio de Compra Unitario"
+    )
+    factura = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Número de Factura",
+        help_text="Número de factura de la compra"
     )
 
     # Campos de auditoría
