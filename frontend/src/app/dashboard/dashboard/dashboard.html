@@ -198,31 +198,33 @@
 
         <!-- Panel de Filtros Expandible -->
         <div class="filters-panel" *ngIf="showFilters" [@detailExpand]="showFilters ? 'expanded' : 'collapsed'">
-          <!-- Filtros para Ventas y Compras (por fecha) -->
-          <div *ngIf="papeleraCategoria === 'ventas' || papeleraCategoria === 'compras'" class="date-filters">
-            <h4>Filtrar por Fecha</h4>
-            <div class="date-filter-row">
-              <mat-form-field appearance="outline">
-                <mat-label>Fecha Inicio</mat-label>
-                <input matInput type="date" [(ngModel)]="dateFilterStart" (ngModelChange)="onDateFilterChange()">
-              </mat-form-field>
+          <!-- Filtros por Fecha (todas las categorías) -->
+          <div class="date-filters">
+            <h4>
+              <mat-icon>date_range</mat-icon>
+              Filtrar por Rango de Fechas
+              <span class="filter-hint">
+                ({{papeleraCategoria === 'ventas' || papeleraCategoria === 'compras' ? 'Fecha de transacción' : 'Fecha
+                de creación'}})
+              </span>
+            </h4>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Fecha Fin</mat-label>
-                <input matInput type="date" [(ngModel)]="dateFilterEnd" (ngModelChange)="onDateFilterChange()">
-              </mat-form-field>
+            <mat-form-field appearance="outline" class="date-range-field">
+              <mat-label>Seleccionar Rango</mat-label>
+              <mat-date-range-input [formGroup]="dateRangeForm" [rangePicker]="picker">
+                <input matStartDate formControlName="start" placeholder="Fecha inicio"
+                  (dateChange)="onDateFilterChange()">
+                <input matEndDate formControlName="end" placeholder="Fecha fin" (dateChange)="onDateFilterChange()">
+              </mat-date-range-input>
+              <mat-hint>DD/MM/AAAA – DD/MM/AAAA</mat-hint>
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
 
-              <button mat-raised-button color="warn" (click)="clearFilters()">
-                <mat-icon>clear</mat-icon>
-                Limpiar
-              </button>
-            </div>
-          </div>
-
-          <!-- Mensaje para otras categorías -->
-          <div *ngIf="papeleraCategoria !== 'ventas' && papeleraCategoria !== 'compras'" class="no-filters-message">
-            <mat-icon>info</mat-icon>
-            <p>No hay filtros adicionales disponibles para {{papeleraCategoria}}. Usa la búsqueda por ID o nombre.</p>
+            <button mat-raised-button color="warn" (click)="clearFilters()" class="clear-btn">
+              <mat-icon>clear</mat-icon>
+              Limpiar Filtros
+            </button>
           </div>
         </div>
 
@@ -473,8 +475,10 @@
           </table>
 
           <p *ngIf="papeleraItemsFiltered.length === 0 && !papeleraLoading" class="empty-message">
-            <mat-icon>{{searchTerm || dateFilterStart || dateFilterEnd ? 'search_off' : 'delete_outline'}}</mat-icon>
-            {{searchTerm || dateFilterStart || dateFilterEnd ? 'No se encontraron resultados con los filtros aplicados.'
+            <mat-icon>{{searchTerm || dateRangeForm.get('start')?.value || dateRangeForm.get('end')?.value ?
+              'search_off' : 'delete_outline'}}</mat-icon>
+            {{searchTerm || dateRangeForm.get('start')?.value || dateRangeForm.get('end')?.value ? 'No se encontraron
+            resultados con los filtros aplicados.'
             : 'No hay elementos en la papelera de ' + papeleraCategoria + '.'}}
           </p>
         </div>

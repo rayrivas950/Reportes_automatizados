@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +13,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { Observable } from 'rxjs';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
@@ -31,6 +33,7 @@ import { ReportesModalComponent } from '../reportes-modal/reportes-modal.compone
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatTabsModule,
     MatCardModule,
     MatButtonModule,
@@ -42,6 +45,8 @@ import { ReportesModalComponent } from '../reportes-modal/reportes-modal.compone
     MatTooltipModule,
     MatInputModule,
     MatFormFieldModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
     OperationsFormComponent,
     FileUploadComponent,
     ReportesModalComponent
@@ -81,8 +86,7 @@ export class DashboardComponent implements OnInit {
   // Búsqueda y filtros
   searchTerm: string = '';
   showFilters: boolean = false;
-  dateFilterStart: string = '';
-  dateFilterEnd: string = '';
+  dateRangeForm: FormGroup;
 
   constructor(
     private authService: AuthService,
@@ -98,6 +102,12 @@ export class DashboardComponent implements OnInit {
     // Actualizar isDarkTheme cuando cambie el tema
     this.currentTheme$.subscribe(theme => {
       this.isDarkTheme = theme === 'dark';
+    });
+
+    // Inicializar FormGroup para el rango de fechas
+    this.dateRangeForm = new FormGroup({
+      start: new FormControl<Date | null>(null),
+      end: new FormControl<Date | null>(null)
     });
   }
 
@@ -210,8 +220,7 @@ export class DashboardComponent implements OnInit {
     this.papeleraLoading = true;
     this.expandedPapeleraItem = null;
     this.searchTerm = '';
-    this.dateFilterStart = '';
-    this.dateFilterEnd = '';
+    this.dateRangeForm.reset();
     this.showFilters = false;
     this.apiService.getPapelera(this.papeleraCategoria).subscribe({
       next: (data) => {
@@ -268,8 +277,7 @@ export class DashboardComponent implements OnInit {
 
   clearFilters(): void {
     this.searchTerm = '';
-    this.dateFilterStart = '';
-    this.dateFilterEnd = '';
+    this.dateRangeForm.reset();
     this.applyFilters();
   }
 
@@ -285,16 +293,32 @@ export class DashboardComponent implements OnInit {
       );
     }
 
-    // Filtro por fechas (solo para ventas y compras)
-    if ((this.papeleraCategoria === 'ventas' || this.papeleraCategoria === 'compras') &&
-      (this.dateFilterStart || this.dateFilterEnd)) {
+    // Filtro por fechas (para todas las categorías)
+    const startDate = this.dateRangeForm.get('start')?.value;
+    const endDate = this.dateRangeForm.get('end')?.value;
+
+    if (startDate || endDate) {
       filtered = filtered.filter(item => {
-        const itemDate = new Date(item.fecha);
-        const startDate = this.dateFilterStart ? new Date(this.dateFilterStart) : null;
-        const endDate = this.dateFilterEnd ? new Date(this.dateFilterEnd) : null;
+        // Determinar qué campo de fecha usar según la categoría
+        let itemDate: Date | null = null;
+
+        if (this.papeleraCategoria === 'ventas' || this.papeleraCategoria === 'compras') {
+          // Ventas y compras usan 'fecha'
+          itemDate = item.fecha ? new Date(item.fecha) : null;
+        } else {
+          // Productos, clientes y proveedores usan 'created_at'
+          itemDate = item.created_at ? new Date(item.created_at) : null;
+        }
+
+        if (!itemDate) return false;
 
         if (startDate && itemDate < startDate) return false;
-        if (endDate && itemDate > endDate) return false;
+        if (endDate) {
+          // Ajustar endDate para incluir todo el día
+          const adjustedEndDate = new Date(endDate);
+          adjustedEndDate.setHours(23, 59, 59, 999);
+          if (itemDate > adjustedEndDate) return false;
+        }
         return true;
       });
     }
